@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Small World Machine — YAD (Yet Another Dungeon)</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        background-color: black;
+        background-image: url('/assets/dungeon_pack/textures/flat1_1.webp');
+        background-repeat: repeat;
+        background-size: 256px 256px; /* Massive scale so pixels match the game */
+        image-rendering: pixelated;
+        box-shadow: inset 0 0 50px rgba(0,0,0,0.8); /* Optional: slight shadow to frame it */
+      }
+      #retro-screen {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        overflow: hidden;
+        background-color: #000;
+        container-type: size;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="retro-screen">
+      <canvas id="SmallWorldMachine"></canvas>
+    </div>
+
+    <script type="module" src="/src/App.ts"></script>
+  </body>
+</html>

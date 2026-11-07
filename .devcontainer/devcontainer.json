@@ -1,0 +1,45 @@
+{
+  "name": "YAD — Yet Another Dungeon",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "node",
+  "forwardPorts": [
+    5173,
+    4173
+  ],
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite Dev Server (Game)",
+      "onAutoForward": "notify"
+    },
+    "4173": {
+      "label": "Vite Preview",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "jetbrains": {
+      "backend": "PhpStorm"
+    },
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "typescript.tsdk": "node_modules/typescript/lib"
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "vitest.explorer",
+        "ggsimm.wgsl",
+        "slevesque.shader"
+      ]
+    }
+  }
+}
