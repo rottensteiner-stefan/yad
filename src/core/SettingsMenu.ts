@@ -2,10 +2,17 @@ import {
   CROSSHAIR_OPTIONS,
   DEFAULT_GAME_SETTINGS,
   FOV_OPTIONS,
+  LEVEL_OPTIONS,
+  RESOLUTION_OPTIONS,
   loadGameSettings,
   saveGameSettings,
 } from "./GameSettings.js";
-import type { CrosshairMode, GameSettingsData } from "./GameSettings.js";
+import type {
+  CrosshairMode,
+  GameSettingsData,
+  LevelId,
+  RenderResolution,
+} from "./GameSettings.js";
 
 export type MenuSoundKind = "open" | "close" | "move";
 
@@ -172,7 +179,7 @@ function ensureFontsAndStyles(): void {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 22px;
+        height: 20px;
         padding: 0 4px 0 0;
         cursor: pointer;
       }
@@ -554,6 +561,13 @@ export class SettingsMenu {
 
     const panel = appendCell("yad-settings-panel");
 
+    this._addSelectorRow<RenderResolution>(
+      panel,
+      "resolution",
+      "Resolution",
+      RESOLUTION_OPTIONS,
+      (v: RenderResolution): string => v.toUpperCase(),
+    );
     this._addSelectorRow<number>(panel, "fov", "Field of View", FOV_OPTIONS, (v: number): string => {
       return `${v} DEG`;
     });
@@ -573,6 +587,13 @@ export class SettingsMenu {
     this._addSliderRow(panel, "sfxVolume", "SFX Volume", 0.0, 1.0, 0.05);
     this._addSliderRow(panel, "musicVolume", "Music Volume", 0.0, 1.0, 0.05);
     this._addSliderRow(panel, "reverbLevel", "Reverb Level", 0.0, 1.0, 0.05);
+    this._addSelectorRow<LevelId>(
+      panel,
+      "level",
+      "Level",
+      LEVEL_OPTIONS,
+      (v: LevelId): string => (v === "e1m1" ? "DOOM E1M1" : "YAD GRID"),
+    );
 
     const footer = document.createElement("div");
     footer.className = "yad-settings-footer";
@@ -684,9 +705,15 @@ export class SettingsMenu {
     return { box, center };
   }
 
-  private _addSelectorRow<T extends GameSettingsData["fov"] | GameSettingsData["crosshair"]>(
+  private _addSelectorRow<
+    T extends
+      | GameSettingsData["resolution"]
+      | GameSettingsData["fov"]
+      | GameSettingsData["crosshair"]
+      | GameSettingsData["level"],
+  >(
     panel: HTMLElement,
-    key: "fov" | "crosshair",
+    key: "resolution" | "fov" | "crosshair" | "level",
     label: string,
     choices: readonly T[],
     format: (value: T) => string,
@@ -721,10 +748,14 @@ export class SettingsMenu {
       const baseIdx = curIdx === -1 ? 0 : curIdx;
       const nextIdx = (baseIdx + (delta >= 0 ? 1 : -1) + choices.length) % choices.length;
       const nextVal = choices[nextIdx]!;
-      if (key === "fov") {
+      if (key === "resolution") {
+        this._settings.resolution = nextVal as RenderResolution;
+      } else if (key === "fov") {
         this._settings.fov = nextVal as number;
-      } else {
+      } else if (key === "crosshair") {
         this._settings.crosshair = nextVal as CrosshairMode;
+      } else {
+        this._settings.level = nextVal as LevelId;
       }
       this._onSound?.("move");
       this._commitChanges();
@@ -911,6 +942,18 @@ export class SettingsMenu {
 
   private _formatValue(key: SettingKey): string {
     switch (key) {
+      case "resolution": {
+        const res = this._settings.resolution;
+        const scale =
+          res === "320x200"
+            ? "1X DOS"
+            : res === "640x400"
+              ? "2X CRISPY"
+              : res === "960x600"
+                ? "3X"
+                : "4X";
+        return `${res.toUpperCase()} (${scale})`;
+      }
       case "fov":
         return `${this._settings.fov} DEG`;
       case "crosshair":
@@ -933,6 +976,8 @@ export class SettingsMenu {
         return `${Math.round(this._settings.musicVolume * 100)}%`;
       case "reverbLevel":
         return `${Math.round(this._settings.reverbLevel * 100)}%`;
+      case "level":
+        return this._settings.level === "e1m1" ? "DOOM E1M1" : "YAD GRID";
     }
   }
 

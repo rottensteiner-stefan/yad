@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-22
+
+### "The details are not the details. They make the design." - Charles Eames
+
+- **Features:**
+  - Added binary Doom WAD loader and BSP physics (`src/core/wad/WadParser.ts`, `WadLevelBuilder.ts`, `WadPhysics.ts`) with playable Freedoom `E1M1` (`public/assets/wad/e1m1.wad`, subsector triangulation, linedef doors, lifts, switches, nukeage hazards, sky ceiling, `E` Use key, and `Level: DOOM E1M1 / YAD GRID` selector plus `?level=e1m1|grid`).
+  - Expanded combat to the full 7-weapon arsenal (`Fist`, `Chainsaw`, `Pistol`, `Shotgun`, `Chaingun`, `Rocket Launcher`, `Plasma Rifle`) with split ammo (`BULL`, `SHEL`, `RCKT`, `CELL`), `ARMS` HUD slots `1–6`, shotgun spread, rocket splash damage, and all 6 keycards/skull keys (`k/y/r/K/Y/R`, `stkeys0.webp`–`stkeys5.webp`).
+  - Integrated the full Freedoom `0.13.0` soundscape (35 preloaded SFX incl. per-monster sight/pain/active/death cues, `lift`, `door_close`, `locked`, `switch`, `explosion`, `player_death`) and rendered MIDI level soundtracks (`public/assets/music/e1m1.m4a`, `grid.m4a`).
+  - Added live selectable internal 3D render resolution (`320x200` `1X DOS`, `640x400` `2X CRISPY`, `960x600` `3X`, `1280x800` `4X`) in `GameSettings` and `SettingsMenu` while preserving the `320x200` HUD/menu viewport.
+- **Architecture & Bugfixes:**
+  - Fixed `SettingsMenu` `Level` selector overwriting `crosshair` instead of `level`, fixed `secret_door` SFX root path, and ensured zero-GC rocket splash & spatially hashed 2D linedef collision.
+  - Expanded `WeaponView` overlay to full `320x168` viewport with muzzle-flash alignment and automatic fallback when ammo runs dry.
+- **Housekeeping & Docs:**
+  - Translated all documentation under `docs/` (`log.md`, `concept-dossier.html`, `REFERENCES.md`, `adr/`) cleanly to English and refreshed `docs/concept-dossier.html` for WAD, 7-weapon, 6-key, and render-resolution parity.
+  - Replaced copied monorepo ADRs with 4 concise YAD-specific ADRs (`0001`–`0004`) plus `docs/adr/index.md`, and fixed `app.json` (`entry`, `code.module`, `engine >=0.128.0`), `README.md`, and `AGENTS.md`.
+  - Expanded Vitest suite to 9 test files (28 tests) including `WadParser.test.ts` and new monster/mover/resolution coverage.
+
 ## [0.2.0] - 2026-11-22
 
 ### "Light is meaningful only in relation to darkness." - Louis Kahn

@@ -1,11 +1,29 @@
 import { Events } from "../Events.js";
+import type { PickupPayload, ShootPayload, WeaponPayload } from "../Events.js";
 import type { EventDispatcherImpl } from "@small-world-machine/engine";
 import type { CrosshairMode } from "./GameSettings.js";
+import { SLOT_DEFAULT_WEAPON, WEAPONS } from "./WeaponConfig.js";
+import type { WeaponId } from "./WeaponConfig.js";
 
 export interface WeaponViewOptions {
   parent: HTMLElement;
   events: EventDispatcherImpl;
 }
+
+interface LoadedWeaponSprites {
+  frames: HTMLImageElement[];
+  flashes: HTMLImageElement[];
+}
+
+const ALL_WEAPON_IDS: readonly WeaponId[] = [
+  "fist",
+  "chainsaw",
+  "pistol",
+  "shotgun",
+  "chaingun",
+  "rocket",
+  "plasma",
+];
 
 /**
  * Manages first-person weapon rendering, bobbing, recoil, and screen flashes.
@@ -18,8 +36,10 @@ export class WeaponView {
   private _crosshair!: HTMLElement;
 
   private _shootTimer: number = 0;
-  private _pistolSprites: HTMLImageElement[] = [];
-  private _pistolFlash!: HTMLImageElement;
+  private _shootDuration: number = 400;
+  private _activeWeapon: WeaponId = "pistol";
+  private _shootWeapon: WeaponId = "pistol";
+  private _weaponSprites: Map<WeaponId, LoadedWeaponSprites> = new Map();
   private _weaponFrame: number = 0;
   private _crosshairMode: CrosshairMode = "dot";
   private _crosshairHidden: boolean = false;
@@ -35,6 +55,10 @@ export class WeaponView {
 
   public get isShooting(): boolean {
     return this._shootTimer > 0;
+  }
+
+  public get activeWeapon(): WeaponId {
+    return this._activeWeapon;
   }
 
   constructor(options: WeaponViewOptions) {
@@ -113,15 +137,15 @@ export class WeaponView {
 
   private _createWeaponCanvas(parent: HTMLElement): void {
     this._weaponCanvas = document.createElement("canvas");
-    this._weaponCanvas.width = 128;
-    this._weaponCanvas.height = 128;
+    // Full 320x168 retro viewport above the 32px HUD bar so wide sprites (punch, chainsaw) never clip
+    this._weaponCanvas.width = 320;
+    this._weaponCanvas.height = 168;
     Object.assign(this._weaponCanvas.style, {
       position: "absolute",
-      bottom: "32px", // Exactly on top of the 32px HUD bar
-      left: "50%",
-      transform: "translateX(-50%)",
-      width: "128px",
-      height: "128px",
+      bottom: "32px",
+      left: "0",
+      width: "100%",
+      height: "168px",
       imageRendering: "pixelated",
       pointerEvents: "none",
       zIndex: "50",
@@ -130,27 +154,81 @@ export class WeaponView {
   }
 
   private _loadWeaponSprites(): void {
-    const frames = ["pisga0", "pisgb0", "pisgc0", "pisgd0", "pisge0"];
-    for (const frame of frames) {
-      const img = new Image();
-      img.src = `/assets/dungeon_pack/sprites/${frame}.webp`;
-      img.onload = (): void => this._drawWeapon(this._lastBobX, this._lastBobY);
-      this._pistolSprites.push(img);
+    for (const id of ALL_WEAPON_IDS) {
+      const def = WEAPONS[id];
+      const frames: HTMLImageElement[] = [];
+      const flashes: HTMLImageElement[] = [];
+
+      for (const frameName of def.frames) {
+        const img = new Image();
+        img.src = `/assets/dungeon_pack/sprites/${frameName}.webp`;
+        img.onload = (): void => {
+          if (this._activeWeapon === id) {
+            this._drawWeapon(this._lastBobX, this._lastBobY);
+          }
+        };
+        frames.push(img);
+      }
+
+      for (const flashName of def.flashFrames) {
+        const img = new Image();
+        img.src = `/assets/dungeon_pack/sprites/${flashName}.webp`;
+        img.onload = (): void => {
+          if (this._activeWeapon === id) {
+            this._drawWeapon(this._lastBobX, this._lastBobY);
+          }
+        };
+        flashes.push(img);
+      }
+
+      this._weaponSprites.set(id, { frames, flashes });
     }
-    this._pistolFlash = new Image();
-    this._pistolFlash.src = `/assets/dungeon_pack/sprites/pisfa0.webp`;
   }
 
   private _bindEvents(events: EventDispatcherImpl): void {
-    events.addEventListener(Events.SHOOT, (): void => {
-      this.triggerShoot();
+    events.addEventListener(Events.SHOOT, (e: Record<string, unknown>): void => {
+      const payload = e as unknown as ShootPayload;
+      this.triggerShoot(payload.weaponId);
+    });
+
+    events.addEventListener(Events.WEAPON, (e: Record<string, unknown>): void => {
+      const payload = e as unknown as WeaponPayload;
+      const nextId = payload.weaponId ?? SLOT_DEFAULT_WEAPON[payload.index];
+      if (nextId && nextId !== this._activeWeapon) {
+        this.setActiveWeapon(nextId);
+      }
+    });
+
+    events.addEventListener(Events.PICKUP, (e: Record<string, unknown>): void => {
+      const payload = e as unknown as PickupPayload;
+      const type = payload.itemType ?? (payload.type !== Events.PICKUP ? payload.type : undefined);
+      if (type === "weapon" && payload.weaponId) {
+        this.setActiveWeapon(payload.weaponId);
+      }
     });
   }
 
-  public triggerShoot(): void {
-    if (this._weaponFrame > 0) return; // Already in shooting animation
-    this._shootTimer = 400; // 400ms total animation
-    this._weaponFrame = 1;
+  public setActiveWeapon(weaponId: WeaponId): void {
+    this._activeWeapon = weaponId;
+    this._shootWeapon = weaponId;
+    this._shootTimer = 0;
+    this._weaponFrame = 0;
+    if (this._weaponCanvas) {
+      this._drawWeapon(this._lastBobX, this._lastBobY);
+    }
+  }
+
+  public triggerShoot(weaponId?: WeaponId): void {
+    if (this._weaponFrame > 0 && this._shootTimer > 40) return;
+    if (weaponId && weaponId !== this._activeWeapon) {
+      this._activeWeapon = weaponId;
+    }
+    const id = weaponId ?? this._activeWeapon;
+    const def = WEAPONS[id];
+    this._shootWeapon = id;
+    this._shootDuration = def.animDurationMs;
+    this._shootTimer = def.animDurationMs;
+    this._weaponFrame = def.frames.length > 1 ? 1 : 0;
     if (this._weaponCanvas) {
       this._lastBobX = 0;
       this._lastBobY = 10;
@@ -174,6 +252,7 @@ export class WeaponView {
     let offsetX = 0;
     let offsetY = 0;
     const prevFrame = this._weaponFrame;
+    const def = WEAPONS[this._shootWeapon];
 
     if (this._shootTimer > 0) {
       this._shootTimer -= deltaTime * 1000;
@@ -186,21 +265,12 @@ export class WeaponView {
           offsetY = Math.round(Math.abs(Math.sin(bobPhase)) * 4);
         }
       } else {
-        if (this._shootTimer < 100) {
-          this._weaponFrame = 4; // pisge0
-        } else if (this._shootTimer < 200) {
-          this._weaponFrame = 3; // pisgd0
-        } else if (this._shootTimer < 300) {
-          this._weaponFrame = 2; // pisgc0
-        } else {
-          this._weaponFrame = 1; // pisgb0
-        }
-
-        // Recoil drop
-        offsetY = 10;
+        const activeFrames = Math.max(1, def.frames.length - 1);
+        const progress = Math.max(0, Math.min(0.9999, 1 - this._shootTimer / this._shootDuration));
+        this._weaponFrame = Math.min(def.frames.length - 1, 1 + Math.floor(progress * activeFrames));
+        offsetY = def.id === "chaingun" || def.id === "chainsaw" ? 4 : 10;
       }
     } else if (this.viewBobbing) {
-      // Bobbing calculation without heap allocations or DOM string manipulation
       offsetX = Math.round(Math.sin(bobPhase * 0.5) * 6);
       offsetY = Math.round(Math.abs(Math.sin(bobPhase)) * 4);
     }
@@ -224,24 +294,48 @@ export class WeaponView {
 
     ctx.clearRect(0, 0, this._weaponCanvas.width, this._weaponCanvas.height);
 
-    const sprite = this._pistolSprites[this._weaponFrame];
+    const activeId = this._shootTimer > 0 ? this._shootWeapon : this._activeWeapon;
+    const sprites = this._weaponSprites.get(activeId);
+    if (!sprites) return;
+
+    const def = WEAPONS[activeId];
+    const sprite = sprites.frames[this._weaponFrame] ?? sprites.frames[0];
+    const isFlashActive = this._shootTimer > 0 && this._weaponFrame >= 1 && sprites.flashes.length > 0;
+    const flashIdx = isFlashActive ? Math.min(sprites.flashes.length - 1, this._weaponFrame - 1) : -1;
+    const flash = flashIdx >= 0 ? sprites.flashes[flashIdx] : undefined;
+
+    if (
+      def.flashOverlay &&
+      flash &&
+      flash.complete &&
+      flash.naturalWidth > 0 &&
+      this._weaponFrame <= sprites.flashes.length
+    ) {
+      const fdx = Math.round((this._weaponCanvas.width - flash.width) / 2) + offsetX;
+      const fdy = this._weaponCanvas.height - flash.height + offsetY;
+      ctx.drawImage(flash, fdx, fdy);
+      return;
+    }
+
     if (sprite && sprite.complete && sprite.naturalWidth > 0) {
       const dx = Math.round((this._weaponCanvas.width - sprite.width) / 2) + offsetX;
       const dy = this._weaponCanvas.height - sprite.height + offsetY;
       ctx.drawImage(sprite, dx, dy);
     }
 
-    // Draw flash if firing frame
+    // Draw muzzle flash on firing frame 1 (or multi-frame rocket/chaingun flashes)
     if (
-      this._weaponFrame === 1 &&
-      this._pistolFlash &&
-      this._pistolFlash.complete &&
-      this._pistolFlash.naturalWidth > 0
+      flash &&
+      flash.complete &&
+      flash.naturalWidth > 0 &&
+      (this._weaponFrame === 1 ||
+        (activeId === "chaingun" && this._weaponFrame <= 2) ||
+        (activeId === "rocket" && this._weaponFrame <= sprites.flashes.length))
     ) {
-      const dx = Math.round((this._weaponCanvas.width - this._pistolFlash.width) / 2 - 10) + offsetX;
+      const fdx = Math.round((this._weaponCanvas.width - flash.width) / 2 + def.flashOffsetX) + offsetX;
       const spriteH = sprite ? sprite.height : 64;
-      const dy = this._weaponCanvas.height - spriteH - this._pistolFlash.height + 20 + offsetY;
-      ctx.drawImage(this._pistolFlash, dx, dy);
+      const fdy = this._weaponCanvas.height - spriteH - flash.height + def.flashOffsetY + offsetY;
+      ctx.drawImage(flash, fdx, fdy);
     }
   }
 }

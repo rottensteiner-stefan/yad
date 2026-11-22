@@ -126,8 +126,10 @@ describe("GameSettings", () => {
     }
   });
 
-  it("sanitizes invalid numbers, bounds, and unknown FOV/crosshair values", () => {
+  it("sanitizes invalid numbers, bounds, and unknown resolution/FOV/crosshair/level values", () => {
     const cleaned = sanitizeGameSettings({
+      resolution: "800x600" as unknown as "320x200",
+      level: "e9m9" as unknown as "e1m1",
       fov: 999,
       crosshair: "invalid" as unknown as "dot",
       overallBrightness: 10,
@@ -141,6 +143,8 @@ describe("GameSettings", () => {
       viewBobbing: false,
     });
 
+    expect(cleaned.resolution).toBe(DEFAULT_GAME_SETTINGS.resolution);
+    expect(cleaned.level).toBe(DEFAULT_GAME_SETTINGS.level);
     expect(cleaned.fov).toBe(DEFAULT_GAME_SETTINGS.fov);
     expect(cleaned.crosshair).toBe(DEFAULT_GAME_SETTINGS.crosshair);
     expect(cleaned.overallBrightness).toBe(2.0);
@@ -157,6 +161,8 @@ describe("GameSettings", () => {
   it("persists and loads settings from localStorage and recovers from invalid JSON", () => {
     const custom: GameSettingsData = {
       ...DEFAULT_GAME_SETTINGS,
+      resolution: "960x600",
+      level: "grid",
       fov: 90,
       crosshair: "cross",
       masterVolume: 0.45,
@@ -258,22 +264,28 @@ describe("SettingsMenu", () => {
     expect(onOpenChange).toHaveBeenLastCalledWith(true);
     expect(onSound).toHaveBeenLastCalledWith("open");
 
-    // Row 0 is FOV (75 -> 90 on ArrowRight)
+    // Row 0 is Resolution (320x200 -> 640x400 on ArrowRight)
+    pressKey("ArrowRight");
+    expect(menu.settings.resolution).toBe("640x400");
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ resolution: "640x400" }));
+
+    // Row 1 is FOV (75 -> 90 on ArrowRight)
+    pressKey("ArrowDown");
     pressKey("ArrowRight");
     expect(menu.settings.fov).toBe(90);
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ fov: 90 }));
 
-    // Row 1 is Crosshair (dot -> cross on ArrowRight)
+    // Row 2 is Crosshair (dot -> cross on ArrowRight)
     pressKey("ArrowDown");
     pressKey("ArrowRight");
     expect(menu.settings.crosshair).toBe("cross");
 
-    // Row 2 is Retro Quantize (true -> false on Enter)
+    // Row 3 is Retro Quantize (true -> false on Enter)
     pressKey("ArrowDown");
     pressKey("Enter");
     expect(menu.settings.retroQuantize).toBe(false);
 
-    // Row 3 -> 4 -> 5 is Overall Brightness (1.0 -> 1.05 on ArrowRight)
+    // Row 4 -> 5 -> 6 is Overall Brightness (1.0 -> 1.05 on ArrowRight)
     pressKey("ArrowDown");
     pressKey("ArrowDown");
     pressKey("ArrowDown");
@@ -281,6 +293,7 @@ describe("SettingsMenu", () => {
     expect(menu.settings.overallBrightness).toBe(1.05);
 
     // Saved to localStorage
+    expect(loadGameSettings().resolution).toBe("640x400");
     expect(loadGameSettings().fov).toBe(90);
     expect(loadGameSettings().crosshair).toBe("cross");
     expect(loadGameSettings().retroQuantize).toBe(false);
@@ -289,6 +302,16 @@ describe("SettingsMenu", () => {
     // Reset restores defaults
     menu.resetToDefaults();
     expect(menu.settings).toEqual(DEFAULT_GAME_SETTINGS);
+
+    // Menu stays open (active row remains 6: Overall Brightness); navigate 6 rows down to row 12 (Level)
+    for (let i = 0; i < 6; i++) {
+      pressKey("ArrowDown");
+    }
+    const prevCrosshair = menu.settings.crosshair;
+    const prevLevel = menu.settings.level;
+    pressKey("ArrowRight");
+    expect(menu.settings.level).not.toBe(prevLevel);
+    expect(menu.settings.crosshair).toBe(prevCrosshair);
 
     // Close via Escape
     pressKey("Escape");

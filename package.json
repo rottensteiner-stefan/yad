@@ -1,7 +1,7 @@
 {
   "name": "yad",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "YAD — Yet Another Dungeon. A first-person grid-crawler. Standalone project; it consumes Small World Machine as a versioned package (pinned release URL).",
   "type": "module",
   "scripts": {

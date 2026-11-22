@@ -2,10 +2,31 @@ export const GAME_SETTINGS_STORAGE_KEY = "yad_game_settings";
 
 export const FOV_OPTIONS: readonly number[] = [60, 75, 90, 105];
 
+export type RenderResolution = "320x200" | "640x400" | "960x600" | "1280x800";
+export const RESOLUTION_OPTIONS: readonly RenderResolution[] = [
+  "320x200",
+  "640x400",
+  "960x600",
+  "1280x800",
+];
+export const RESOLUTION_DIMENSIONS: Readonly<
+  Record<RenderResolution, { width: number; height: number }>
+> = {
+  "320x200": { width: 320, height: 200 },
+  "640x400": { width: 640, height: 400 },
+  "960x600": { width: 960, height: 600 },
+  "1280x800": { width: 1280, height: 800 },
+};
+
 export type CrosshairMode = "off" | "dot" | "cross";
 export const CROSSHAIR_OPTIONS: readonly CrosshairMode[] = ["off", "dot", "cross"];
 
+export type LevelId = "e1m1" | "grid";
+export const LEVEL_OPTIONS: readonly LevelId[] = ["e1m1", "grid"];
+
 export interface GameSettingsData {
+  resolution: RenderResolution;
+  level: LevelId;
   fov: number;
   crosshair: CrosshairMode;
   retroQuantize: boolean;
@@ -20,6 +41,8 @@ export interface GameSettingsData {
 }
 
 export const DEFAULT_GAME_SETTINGS: Readonly<GameSettingsData> = {
+  resolution: "320x200",
+  level: "e1m1",
   fov: 75,
   crosshair: "dot",
   retroQuantize: true,
@@ -40,6 +63,13 @@ function clampRange(value: unknown, min: number, max: number, fallback: number):
   return Math.min(max, Math.max(min, value));
 }
 
+function normalizeResolution(value: unknown, fallback: RenderResolution): RenderResolution {
+  if (typeof value === "string" && RESOLUTION_OPTIONS.includes(value as RenderResolution)) {
+    return value as RenderResolution;
+  }
+  return fallback;
+}
+
 function normalizeFov(value: unknown, fallback: number): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return fallback;
@@ -57,9 +87,18 @@ function normalizeCrosshair(value: unknown, fallback: CrosshairMode): CrosshairM
   return fallback;
 }
 
+function normalizeLevel(value: unknown, fallback: LevelId): LevelId {
+  if (value === "e1m1" || value === "grid") {
+    return value;
+  }
+  return fallback;
+}
+
 export function sanitizeGameSettings(raw: Partial<GameSettingsData> | null | undefined): GameSettingsData {
   const source = raw ?? {};
   return {
+    resolution: normalizeResolution(source.resolution, DEFAULT_GAME_SETTINGS.resolution),
+    level: normalizeLevel(source.level, DEFAULT_GAME_SETTINGS.level),
     fov: normalizeFov(source.fov, DEFAULT_GAME_SETTINGS.fov),
     crosshair: normalizeCrosshair(source.crosshair, DEFAULT_GAME_SETTINGS.crosshair),
     retroQuantize:

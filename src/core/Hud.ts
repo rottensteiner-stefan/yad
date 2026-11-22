@@ -1,8 +1,10 @@
 import { Events } from "../Events.js";
-import type { DamagePayload, PickupPayload, WeaponPayload } from "../Events.js";
+import type { DamagePayload, PickupPayload, ShootPayload, WeaponPayload } from "../Events.js";
 import type { EventDispatcherImpl } from "@small-world-machine/engine";
 import type { SpriteFontVariant } from "./SpriteAtlas.js";
 import { generateSpriteFontChars, sliceFaceSprites } from "./SpriteAtlas.js";
+import { AMMO_MAX, KEY_SLOT_ENTRIES, SLOT_DEFAULT_WEAPON, WEAPONS } from "./WeaponConfig.js";
+import type { AmmoType, WeaponId } from "./WeaponConfig.js";
 import type { WeaponView } from "./WeaponView.js";
 
 export class Hud {
@@ -24,7 +26,14 @@ export class Hud {
 
   private _health: number = 100;
   private _armor: number = 0;
-  private _ammo: number = 50;
+  private _ammoByType: Record<AmmoType, number> = {
+    bull: 50,
+    shel: 0,
+    rckt: 0,
+    cell: 0,
+  };
+  private _ownedWeapons: Set<WeaponId> = new Set(["fist", "pistol"]);
+  private _activeWeapon: WeaponId = "pistol";
 
   public get health(): number {
     return this._health;
@@ -35,11 +44,32 @@ export class Hud {
   }
 
   public get ammo(): number {
-    return this._ammo;
+    const ammoType = WEAPONS[this._activeWeapon].ammoType ?? "bull";
+    return this._ammoByType[ammoType];
+  }
+
+  public getAmmo(type: AmmoType): number {
+    return this._ammoByType[type];
+  }
+
+  public get activeWeapon(): WeaponId {
+    return this._activeWeapon;
+  }
+
+  public hasWeapon(id: WeaponId): boolean {
+    return this._ownedWeapons.has(id);
   }
 
   public get keycards(): readonly string[] {
     return this._keycards;
+  }
+
+  public hasKeycard(color: string): boolean {
+    if (this._keycards.includes(color)) return true;
+    if (color === "blue" || color === "yellow" || color === "red") {
+      return this._keycards.includes(`${color}_skull`);
+    }
+    return false;
   }
 
   constructor(
@@ -144,30 +174,47 @@ export class Hud {
         this._health = Math.min(200, this._health + amount);
         this._triggerFlash("rgba(0, 0, 255, 0.3)"); // Blue flash
       } else if (type === "weapon") {
+        const weaponId = payload.weaponId ?? "shotgun";
+        this._ownedWeapons.add(weaponId);
+        this._activeWeapon = weaponId;
+        const ammoType = payload.ammoType ?? WEAPONS[weaponId].ammoType;
+        if (ammoType && amount > 0) {
+          this._ammoByType[ammoType] = Math.min(AMMO_MAX[ammoType], this._ammoByType[ammoType] + amount);
+        }
+        this._updateWeaponDisplay(WEAPONS[this._activeWeapon].slot);
         this._triggerFlash("rgba(255, 255, 0, 0.3)"); // Yellow flash
       } else if (type === "ammo") {
-        this._ammo = Math.min(200, this._ammo + amount);
+        const ammoType = payload.ammoType ?? WEAPONS[this._activeWeapon].ammoType ?? "bull";
+        this._ammoByType[ammoType] = Math.min(AMMO_MAX[ammoType], this._ammoByType[ammoType] + amount);
         this._triggerFlash("rgba(255, 255, 255, 0.3)"); // White flash
       } else if (type === "keycard" && payload.color) {
         if (!this._keycards.includes(payload.color)) {
           this._keycards.push(payload.color);
         }
+        this._triggerFlash("rgba(255, 230, 80, 0.25)");
       }
       this._updateDisplay();
     });
 
-    this.events.addEventListener(Events.SHOOT, (): void => {
-      if (this._ammo > 0) {
-        this._ammo -= 1;
+    this.events.addEventListener(Events.SHOOT, (e: Record<string, unknown>): void => {
+      const payload = e as unknown as ShootPayload;
+      const def = payload.weaponId ? WEAPONS[payload.weaponId] : WEAPONS[this._activeWeapon];
+      const ammoType = payload.ammoType !== undefined ? payload.ammoType : def.ammoType;
+      const cost = payload.ammoCost ?? def.ammoPerShot;
+      if (ammoType && cost > 0 && this._ammoByType[ammoType] > 0) {
+        this._ammoByType[ammoType] = Math.max(0, this._ammoByType[ammoType] - cost);
         this._updateDisplay();
       }
     });
 
     this.events.addEventListener(Events.WEAPON, (e: Record<string, unknown>) => {
       const payload = e as unknown as WeaponPayload;
-      const { index } = payload;
-      if (index) {
-        this._updateWeaponDisplay(index);
+      const nextId = payload.weaponId ?? SLOT_DEFAULT_WEAPON[payload.index];
+      if (nextId) {
+        this._ownedWeapons.add(nextId);
+        this._activeWeapon = nextId;
+        this._updateWeaponDisplay(WEAPONS[nextId].slot);
+        this._updateDisplay();
       }
     });
   }
@@ -218,6 +265,11 @@ export class Hud {
     }
   }
 
+  private _getMainAmmoLabel(): string {
+    const ammoType = WEAPONS[this._activeWeapon].ammoType;
+    return ammoType ? this._ammoByType[ammoType].toString() : "";
+  }
+
   private _updateDisplay(): void {
     if (this._healthEl) {
       this._updateMainStatCanvas(this._healthEl, `${this._health}%`, "HEALTH");
@@ -226,7 +278,7 @@ export class Hud {
       this._updateMainStatCanvas(this._armorEl, `${this._armor}%`, "ARMOR");
     }
     if (this._ammoEl) {
-      this._updateMainStatCanvas(this._ammoEl, this._ammo.toString(), "AMMO");
+      this._updateMainStatCanvas(this._ammoEl, this._getMainAmmoLabel(), "AMMO");
     }
 
     // Update face
@@ -252,31 +304,29 @@ export class Hud {
       }
     }
 
-    // Update keycards
-    // Grid:
+    // Update all 6 key slots:
     // [0: Blue Card]   [1: Blue Skull]
     // [2: Yellow Card] [3: Yellow Skull]
     // [4: Red Card]    [5: Red Skull]
-    const keyColors = ["blue", "yellow", "red"];
-    for (let i = 0; i < 3; i++) {
-      const slotIndex = i * 2; // Left column
-      const slot = this._keycardSlots[slotIndex];
-      if (slot) {
-        if (this._keycards.includes(keyColors[i]!)) {
-          slot.style.backgroundColor = "rgba(0, 0, 0, 0.35)";
-          slot.style.backgroundImage = `url('/assets/dungeon_pack/ui/stkeys${i}.webp')`;
-          slot.style.backgroundRepeat = "no-repeat";
-          slot.style.backgroundPosition = "center";
-          slot.style.backgroundSize = "contain";
-          slot.style.imageRendering = "pixelated";
-        } else {
-          slot.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
-          slot.style.backgroundImage = "none";
-        }
+    for (let i = 0; i < KEY_SLOT_ENTRIES.length; i++) {
+      const entry = KEY_SLOT_ENTRIES[i]!;
+      const slot = this._keycardSlots[i];
+      if (!slot) continue;
+      if (this._keycards.includes(entry.id)) {
+        slot.style.backgroundColor = "rgba(0, 0, 0, 0.35)";
+        slot.style.backgroundImage = `url('${entry.icon}')`;
+        slot.style.backgroundRepeat = "no-repeat";
+        slot.style.backgroundPosition = "center";
+        slot.style.backgroundSize = "contain";
+        slot.style.imageRendering = "pixelated";
+      } else {
+        slot.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
+        slot.style.backgroundImage = "none";
       }
     }
 
-    // Update ammo list
+    // Update ARMS and ammo list
+    this._updateWeaponDisplay(WEAPONS[this._activeWeapon].slot);
     this._drawAmmoInfo();
   }
 
@@ -286,7 +336,7 @@ export class Hud {
 
     // Segment 1 (Ammo)
     const seg1 = this._createSegment(45);
-    this._ammoEl = this._addMainStat(seg1, this._ammo.toString(), "AMMO");
+    this._ammoEl = this._addMainStat(seg1, this._getMainAmmoLabel(), "AMMO");
 
     // Segment 2 (Health)
     const seg2 = this._createSegment(48);
@@ -400,10 +450,18 @@ export class Hud {
     });
     container.appendChild(this._armsCanvas);
 
-    this._updateWeaponDisplay(1);
+    this._updateWeaponDisplay(WEAPONS[this._activeWeapon].slot);
   }
 
-  private _updateWeaponDisplay(activeIndex: number): void {
+  private _isSlotOwned(slot: number): boolean {
+    if (slot === 1) {
+      return this._ownedWeapons.has("fist") || this._ownedWeapons.has("chainsaw");
+    }
+    const id = SLOT_DEFAULT_WEAPON[slot];
+    return id ? this._ownedWeapons.has(id) : false;
+  }
+
+  private _updateWeaponDisplay(activeSlot: number): void {
     if (!this._armsCanvas) return;
     const ctx = this._armsCanvas.getContext("2d");
     if (!ctx) return;
@@ -415,9 +473,8 @@ export class Hud {
     const startX = (this._armsCanvas.width - (colW * 2 + 2)) / 2;
     const startY = 0;
 
-    const weapons = [1, 2, 3, 4, 5, 6];
     for (let i = 0; i < 6; i++) {
-      const wpn = weapons[i]!;
+      const wpn = i + 1;
       const col = i >= 3 ? 1 : 0;
       const row = i % 3;
 
@@ -435,7 +492,12 @@ export class Hud {
       ctx.fillRect(boxX, boxY + rowH - 1, colW, 1);
       ctx.fillRect(boxX + colW - 1, boxY, 1, rowH);
 
-      const mapToUse = activeIndex === wpn ? this._fontSmallYellow : this._fontSmallGrey;
+      const mapToUse =
+        activeSlot === wpn
+          ? this._fontSmallYellow
+          : this._isSlotOwned(wpn)
+            ? this._fontSmallWhite
+            : this._fontSmallGrey;
       this._drawSpriteText(ctx, wpn.toString(), boxX + 3, boxY - 1, mapToUse, "left", 5);
     }
 
@@ -458,13 +520,13 @@ export class Hud {
     container.style.gridTemplateRows = "1fr 1fr 1fr";
     container.style.gap = "2px";
 
-    // Create 6 slots (3 regular cards left, 3 skull keys right)
+    // Create 6 slots (3 regular cards left, 3 skull keys right; row-major in 2-col grid)
     for (let i = 0; i < 6; i++) {
       const btn = document.createElement("div");
       Object.assign(btn.style, {
         width: "100%",
         height: "100%",
-        backgroundColor: "rgba(0, 0, 0, 0.2)", // Outset erfordert etwas helleren Hintergrund
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
         borderTop: "1px solid rgba(255, 255, 255, 0.3)",
         borderLeft: "1px solid rgba(255, 255, 255, 0.3)",
         borderBottom: "1px solid rgba(0, 0, 0, 0.6)",
@@ -496,10 +558,10 @@ export class Hud {
     ctx.clearRect(0, 0, this._ammoInfoCanvas.width, this._ammoInfoCanvas.height);
 
     const ammos = [
-      { name: "BULL", current: this._ammo, max: 200 },
-      { name: "SHEL", current: 0, max: 50 },
-      { name: "RCKT", current: 0, max: 50 },
-      { name: "CELL", current: 0, max: 300 },
+      { name: "BULL", current: this._ammoByType.bull, max: AMMO_MAX.bull },
+      { name: "SHEL", current: this._ammoByType.shel, max: AMMO_MAX.shel },
+      { name: "RCKT", current: this._ammoByType.rckt, max: AMMO_MAX.rckt },
+      { name: "CELL", current: this._ammoByType.cell, max: AMMO_MAX.cell },
     ];
 
     let y = 1;

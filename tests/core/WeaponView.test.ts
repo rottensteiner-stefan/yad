@@ -96,6 +96,19 @@ describe("WeaponView", () => {
 
       expect(weaponView.weaponFrame).toBe(0);
       expect(drawnSprites.at(-1)).toBe("/assets/dungeon_pack/sprites/pisga0.webp");
+
+      // Switch to Shotgun, Chaingun, Rocket, Plasma, Chainsaw and verify idle sprites draw
+      events.dispatchEvent("app:yad:weapon", { index: 3, weaponId: "shotgun" });
+      expect(weaponView.activeWeapon).toBe("shotgun");
+      expect(drawnSprites.at(-1)).toBe("/assets/dungeon_pack/sprites/shtga0.webp");
+
+      events.dispatchEvent("app:yad:pickup", { itemType: "weapon", weaponId: "plasma", amount: 40 });
+      expect(weaponView.activeWeapon).toBe("plasma");
+      expect(drawnSprites.at(-1)).toBe("/assets/dungeon_pack/sprites/plsga0.webp");
+
+      events.dispatchEvent("app:yad:weapon", { index: 1, weaponId: "chainsaw" });
+      expect(weaponView.activeWeapon).toBe("chainsaw");
+      expect(drawnSprites.at(-1)).toBe("/assets/dungeon_pack/sprites/sawga0.webp");
     } finally {
       Object.defineProperty(globalThis, "document", { configurable: true, value: prevDocument });
       Object.defineProperty(globalThis, "Image", { configurable: true, value: prevImage });

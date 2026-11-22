@@ -31,7 +31,7 @@ yad/
 │   └── core/                     # Unit and behavior tests
 ├── AGENTS.md                     # Agent guidance and workflow instructions
 ├── CLAUDE.md                     # Legacy agent pointer
-├── app.json                      # ADR 0001 (vormals Engine-ADR 0041) game manifest
+├── app.json                      # Game manifest (ADR 0001)
 ├── package.json                  # Pinned engine release dependency
 ├── tsconfig.json                 # Strict TypeScript configuration
 └── vite.config.ts                # Vite & Vitest configuration

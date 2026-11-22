@@ -1,15 +1,15 @@
 {
   "id": "yad",
   "name": "YAD — Yet Another Dungeon",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "schemaVersion": 1,
-  "description": "First-person grid-crawler dungeon sample application.",
-  "engine": ">=0.115.0",
-  "entry": "index.html",
+  "description": "First-person retro dungeon crawler supporting Freedoom WAD maps and ASCII grid levels.",
+  "engine": ">=0.128.0",
+  "entry": "src/index.html",
   "levels": [],
   "characters": [],
   "kits": [],
   "code": {
-    "module": "./index.ts"
+    "module": "./src/App.ts"
   }
 }

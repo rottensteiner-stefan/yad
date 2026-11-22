@@ -74,6 +74,11 @@ export interface YadLegendEntry {
   isEnemy?: boolean;
   isItem?: boolean;
   itemType?: string;
+  itemColor?: string;
+  itemAmount?: number;
+  weaponId?: string;
+  ammoType?: string;
+  pickupSound?: string;
   /** Wall/Door specific settings */
   doorSpeed?: number;
   doorSound?: string;
@@ -246,6 +251,8 @@ export class LevelBuilder {
                   audio: config.audio,
                   speed: 6.0,
                   detectionRange: 30.0,
+                  sightSound: "pos_sight",
+                  painSound: "pos_pain",
                   ...(config.isPaused ? { isPaused: config.isPaused } : {}),
                 }),
               );
@@ -260,12 +267,15 @@ export class LevelBuilder {
                   onUpdate: (_factor, distance): void => {
                     if (distance > PICKUP_RADIUS || !sprite.isVisible) return;
                     sprite.isVisible = false;
-                    if (config.audio) config.audio.play("pickup", false, 0.8);
+                    if (config.audio) config.audio.play(entry.pickupSound ?? "pickup", false, 0.8);
                     if (config.events) {
                       config.events.dispatchEvent(Events.PICKUP, {
                         itemType,
                         type: itemType,
-                        amount: 20,
+                        amount: entry.itemAmount ?? 20,
+                        ...(entry.itemColor ? { color: entry.itemColor } : {}),
+                        ...(entry.weaponId ? { weaponId: entry.weaponId } : {}),
+                        ...(entry.ammoType ? { ammoType: entry.ammoType } : {}),
                       });
                     }
                   },

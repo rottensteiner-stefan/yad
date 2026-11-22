@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -299,45 +299,45 @@
   <body>
     <div class="container">
       <header class="hero">
-        <span class="badge">Sample Application Dossier</span>
+        <span class="badge">Game Design &amp; Architecture Dossier</span>
         <h1 class="title">YAD — Yet Another Dungeon</h1>
         <p class="tagline">
-          Ein klassischer 90er-Jahre Grid-Dungeon-Crawler in echter 320×200-VGA-Ästhetik, angetrieben von Small World Machine.
+          A 90s retro FPS dungeon crawler pairing scalable 320×200–1280×800 pixel rendering with binary Doom WAD maps and ASCII grids on Small World Machine.
         </p>
         <div class="meta-bar">
           <div class="meta-item"><span>🕹️</span><strong>Genre:</strong> 90s FPS Dungeon Crawler</div>
-          <div class="meta-item"><span>📺</span><strong>Display:</strong> 320×200 Pillarbox / 256 Colors</div>
+          <div class="meta-item"><span>📺</span><strong>Display:</strong> 320×200–1280×800 Retro / 256 Colors</div>
           <div class="meta-item"><span>⚡</span><strong>Renderer:</strong> WebGPU / WebGL2 / WebGL1</div>
-          <div class="meta-item"><span>📁</span><strong>Level Source:</strong> Pure ASCII TXT Grid</div>
+          <div class="meta-item"><span>📁</span><strong>Level Sources:</strong> Doom WAD (E1M1) &amp; ASCII Grid</div>
         </div>
       </header>
 
       <!-- Vision & Core Pillars -->
       <section>
-        <h2 class="section-header"><span>🎯</span> Vision & Design-Pfeiler</h2>
+        <h2 class="section-header"><span>🎯</span> Vision &amp; Design Pillars</h2>
         <div class="grid-cards">
           <div class="card">
-            <h3><span>📺</span> Authentischer CRT-Look</h3>
+            <h3><span>📺</span> Selectable CRT &amp; VGA Look</h3>
             <p>
-              Exakte $320 \times 200$ VGA-Auflösung mit pixelated Skalierung im Pillarbox-Format. Gepaart mit einem Post-Processing-Quantize-Pass erzeugt YAD das nostalgische 256-Farben-DOS-Feeling à la Wolfenstein 3D und Doom.
+              Pillarboxed 16:10 retro display locking the pixel HUD at crisp 320×200 while letting players switch internal 3D render resolution live (<code>320×200</code>, <code>640×400</code>, <code>960×600</code>, <code>1280×800</code>) alongside toggleable <code>QuantizeElement</code> color banding.
             </p>
           </div>
           <div class="card">
-            <h3><span>🗺️</span> Reiner ASCII-Levelbuilder</h3>
+            <h3><span>🗺️</span> Dual WAD &amp; ASCII Level Pipeline</h3>
             <p>
-              Levels werden direkt aus Klartext-Dateien (<code>level1.txt</code>) geladen. Jedes Zeichen entspricht einem Grid-Element (Mauern, Türen, Lavagruben, Fackeln, Pickups und Geheimtüren), wodurch Levelbau in Sekunden im Texteditor möglich ist.
+              Loads authentic binary Doom WADs (<code>e1m1.wad</code> via BSP subsector triangulation, linedef doors, lifts, and exits) as well as plain-text ASCII grids (<code>level1.txt</code>) for instant text-editor prototyping.
             </p>
           </div>
           <div class="card">
-            <h3><span>🌋</span> Dynamische 3D-Shader</h3>
+            <h3><span>🌋</span> Dynamic Shaders &amp; Arsenal</h3>
             <p>
-              Trotz Retro-Optik nutzt YAD moderne Engine-Features: Physikalisch gewellte <code>FluidSurfaceMaterial</code>-Lavabecken mit dynamischen animierten PointLights und realem volumetrischem Pulsieren.
+              Pairs retro textures with rippled <code>FluidSurfaceMaterial</code> lava pools, animated <code>PointLight</code> torches, a full 7-weapon arsenal, 6 keycards/skull keys, and 35 Freedoom 0.13.0 spatial SFX plus rendered MIDI soundtracks.
             </p>
           </div>
           <div class="card">
-            <h3><span>⚔️</span> Grid- & Tank-Navigation</h3>
+            <h3><span>⚔️</span> Classic Tank &amp; FPS Controls</h3>
             <p>
-              Präzise 90-Grad-Drehungen und schrittweises Grid-Movement kombiniert mit FPS-Kamera-Bobbing, Bounding-Box-Kollisionsabfrage und direktem Audio-Feedback bei Schritten und Geheimtüren.
+              Switchable retro tank turning or free mouselook FPS navigation with FOV/zoom support, camera/weapon view-bobbing, AABB/sector collision, and immediate spatial audio cues.
             </p>
           </div>
         </div>
@@ -345,48 +345,48 @@
 
       <!-- Color Palette -->
       <section>
-        <h2 class="section-header"><span>🎨</span> Farbpalette & Texturbibel</h2>
+        <h2 class="section-header"><span>🎨</span> Color Palette & Texture Bible</h2>
         <div class="swatches-grid">
           <div class="swatch-item">
             <div class="swatch-color" style="background: #e63946; color: #fff;">#E63946</div>
             <div class="swatch-info">
               <div class="swatch-name">Blood Red</div>
-              <div class="swatch-desc">Health-Anzeigen, Feindtreffer & HUD</div>
+              <div class="swatch-desc">Health readouts, enemy hits & HUD</div>
             </div>
           </div>
           <div class="swatch-item">
             <div class="swatch-color" style="background: #ff6600; color: #000;">#FF6600</div>
             <div class="swatch-info">
               <div class="swatch-name">Molten Lava</div>
-              <div class="swatch-desc">Fluid Surface Shader, Glut & Fackellicht</div>
+              <div class="swatch-desc">Fluid surface shader, embers & torchlight</div>
             </div>
           </div>
           <div class="swatch-item">
             <div class="swatch-color" style="background: #8b3a2b; color: #fff;">#8B3A2B</div>
             <div class="swatch-info">
               <div class="swatch-name">Dungeon Brick</div>
-              <div class="swatch-desc">Rostrote Ziegelmauern (brbrick.webp)</div>
+              <div class="swatch-desc">Rust-red brick walls (brbrick.webp)</div>
             </div>
           </div>
           <div class="swatch-item">
             <div class="swatch-color" style="background: #2ecc71; color: #000;">#2ECC71</div>
             <div class="swatch-info">
               <div class="swatch-name">Toxic Slime</div>
-              <div class="swatch-desc">Toxische Pools & Säure-Gefahren</div>
+              <div class="swatch-desc">Toxic pools & acid hazards</div>
             </div>
           </div>
           <div class="swatch-item">
             <div class="swatch-color" style="background: #334155; color: #fff;">#334155</div>
             <div class="swatch-info">
               <div class="swatch-name">Castle Slate</div>
-              <div class="swatch-desc">Graue Steinböden & Torbögen</div>
+              <div class="swatch-desc">Gray stone floors & archways</div>
             </div>
           </div>
           <div class="swatch-item">
             <div class="swatch-color" style="background: #08090c; color: #fff;">#08090C</div>
             <div class="swatch-info">
               <div class="swatch-name">CRT Void Black</div>
-              <div class="swatch-desc">Hintergrund, Tiefenschatten & Rand</div>
+              <div class="swatch-desc">Backdrop, deep shadows & framing</div>
             </div>
           </div>
         </div>
@@ -394,77 +394,94 @@
 
       <!-- Level Architecture -->
       <section>
-        <h2 class="section-header"><span>🗺️</span> Level-Architektur (ASCII Grid)</h2>
+        <h2 class="section-header"><span>🗺️</span> Level Architecture (WAD &amp; ASCII Grid)</h2>
         <p style="color: var(--text-muted); margin-bottom: 1rem;">
-          Auszug aus der Original-Leveldatei <code>public/assets/levels/level1.txt</code>. Die Engine liest Zeichen für Zeichen und platziert automatisch 3D-Körper, Textur-Tiles und Shader-Volumen.
+          YAD supports two selectable map pipelines via <code>GameSettings</code> or <code>?level=e1m1|grid</code>:
+          <strong>Freedoom E1M1</strong> (<code>public/assets/wad/e1m1.wad</code> + <code>e1m1_manifest.json</code>) parsed into BSP sectors, upper/mid/lower walls, interactive doors, lifts, switches, and things; and the built-in <strong>ASCII Grid</strong> (<code>public/assets/levels/level1.txt</code>) shown below:
         </p>
 
         <div class="terminal-box">
 WWWWWWWWWWWWWWWWWWWWWWWWGGGGGGGGGGGGGGGW
-W..................W...................W
+W..3........4......W...................W
 W.......P..........+.........E.........G
-W...........1......W.............2.....G
+W..7........1......W......a......2.....G
 W.......l..........W..b.............b..G
 WWWWWWWWWWWW+WWWWWWW...................G
-W........E.........W.........E.........G
+W....k...E.........W.........E.........G
 W........EE........W..b..E..........b..G
-W..................W...................W
+W....y.............W......5............G
 W.......~~~~~~~~...W...................W
 WWWWW...~~~~~~~~...WWWWWWWW+GGGGGGGGGGGG
-G.......~~~~~~~~...G...................W
+G.......~~~~~~~~...G.....r.............W
 G..................O.........3.........W
 GGGGGGGGWWWW+WWWWWWG...................W
+W......K...........WWWWWWWWWWWWWWWWWWWWW
+W.......TTTTTTT........................W
           <div class="legend">
-            <div><span>W</span> = Rote Ziegelmauer (brbrick)</div>
-            <div><span>G</span> = Graue Steinwand (graywide)</div>
-            <div><span>+</span> = Schiebetür mit Sound</div>
-            <div><span>P</span> = Spieler-Startposition</div>
-            <div><span>E</span> = Feind-Spawn (Sprites)</div>
-            <div><span>~</span> = Lava-Fluid-Surface</div>
-            <div><span>b</span> = Explosives Fass (Barrel)</div>
-            <div><span>l</span> = Dynamische Fackel (Light)</div>
-            <div><span>1, 2, 3</span> = Schlüssel & Artefakte</div>
-            <div><span>O</span> = Geheimtür (Secret Wall)</div>
+            <div><span>W, G</span> = Brick wall (brbrick)</div>
+            <div><span>+</span> = Proximity sliding door</div>
+            <div><span>O</span> = Secret push-wall door</div>
+            <div><span>P</span> = Player spawn point</div>
+            <div><span>E</span> = Enemy spawn (sprite AI)</div>
+            <div><span>T</span> = Lava fluid shader pool</div>
+            <div><span>~</span> = Toxic slime hazard floor</div>
+            <div><span>b</span> = Barrel prop</div>
+            <div><span>l</span> = Dynamic flickering torch</div>
+            <div><span>1, 2</span> = Health &amp; armor bonuses</div>
+            <div><span>3–7</span> = Shotgun, Chaingun, Rocket, Plasma, Chainsaw</div>
+            <div><span>a</span> = Shell box ammo pickup</div>
+            <div><span>k, y, r</span> = Blue / Yellow / Red keycards</div>
+            <div><span>K, Y, R</span> = Blue / Yellow / Red skull keys</div>
           </div>
         </div>
       </section>
 
       <!-- Technical Architecture -->
       <section>
-        <h2 class="section-header"><span>⚙️</span> Technische Engine-Integration</h2>
+        <h2 class="section-header"><span>⚙️</span> Technical Engine Integration</h2>
         <table class="spec-table">
           <thead>
             <tr>
               <th>Subsystem</th>
-              <th>Verwendete Small World Machine Komponenten</th>
-              <th>Zweck & Funktion</th>
+              <th>Components Used</th>
+              <th>Purpose &amp; Function</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>Camera & Display</strong></td>
-              <td><code>PerspectiveProjection</code>, <code>CameraStrategyType.FPS</code></td>
-              <td>75° FOV, feste 320×200 Auflösung mit automatischem Skalierungs-Faktor und Pixelated Filtering.</td>
+              <td><strong>Camera &amp; Display</strong></td>
+              <td><code>PerspectiveProjection</code>, <code>CameraStrategyType.FPS</code>, <code>ZoomController</code></td>
+              <td>Configurable FOV (60°–110°), selectable 320×200–1280×800 render target scaled with pixelated filtering inside a 16:10 320×200 HUD viewport.</td>
             </tr>
             <tr>
-              <td><strong>Liquid Shaders</strong></td>
-              <td><code>FluidSurfaceMaterial</code>, <code>PointLight</code></td>
-              <td>Dynamische Wellenberechnung für Lavabecken mit pulsierender Lichtabstrahlung in die Gänge.</td>
+              <td><strong>WAD &amp; Grid Geometry</strong></td>
+              <td><code>WadParser</code>, <code>WadLevelBuilder</code>, <code>GridLevelBuilder</code>, <code>ModelGeometry</code>, <code>InstancedMesh</code></td>
+              <td>Subsector polygon triangulation for Doom WAD maps plus instanced voxel walls and textured floor/ceiling tiles for ASCII grids.</td>
+            </tr>
+            <tr>
+              <td><strong>Liquid &amp; Lighting</strong></td>
+              <td><code>FluidSurfaceMaterial</code>, <code>PointLight</code>, <code>AmbientLight</code>, <code>DirectionalLight</code></td>
+              <td>Animated wave shader for lava hazards with pulsing torchlight and configurable level brightness.</td>
             </tr>
             <tr>
               <td><strong>Post-Processing</strong></td>
-              <td><code>QuantizeElement</code></td>
-              <td>Farbreduktion zur Emulation von 256-Farben-DOS-Paletten ohne teure Texturbakung.</td>
+              <td><code>ToneMappingElement</code>, <code>QuantizeElement</code></td>
+              <td>ACES filmic exposure control plus toggleable 8-step-per-channel color quantization for 90s DOS color banding.</td>
             </tr>
             <tr>
-              <td><strong>Physics & Hitbox</strong></td>
-              <td><code>BoundingBox</code>, <code>Collidable</code></td>
-              <td>AABB-Kollision gegen statische Wände, bewegliche Schiebetüren und Gefahrenzonen.</td>
+              <td><strong>Physics &amp; Hitbox</strong></td>
+              <td><code>WadPhysics</code>, <code>BoundingBox</code>, <code>StaticCollider</code>, <code>HazardGrid</code></td>
+              <td>2.5D sector/linedef sliding, step-up, and door/lift collision in WAD maps; octree AABB and cell hazard checks in grid levels.</td>
+            </tr>
+            <tr>
+              <td><strong>Audio, Weapons &amp; HUD</strong></td>
+              <td><code>AudioSystem</code>, <code>WeaponView</code>, <code>Hud</code>, <code>SettingsMenu</code></td>
+              <td>35 preloaded Freedoom WAVs + <code>.m4a</code> soundtracks, 7 weapons with hitscan/projectile combat, 6 keys, and live Doom-styled settings menu.</td>
             </tr>
             <tr>
               <td><strong>Asset Streaming</strong></td>
-              <td><code>Texture.fromUrl(..., { flipY: true })</code>, <code>TextLoader</code></td>
-              <td>Asynchrones Laden von WebP-Dungeon-Packs und ASCII-Level-Definitionen.</td>
+              <td><code>Texture.fromUrl</code>, <code>TextLoader</code>, <code>fetch</code></td>
+              <td>Loads binary <code>.wad</code> + JSON manifests, ASCII level files, WebP sprite sheets, and local audio assets.</td>
             </tr>
           </tbody>
         </table>
@@ -475,30 +492,30 @@ GGGGGGGGWWWW+WWWWWWG...................W
         <h2 class="section-header"><span>🚀</span> Status & Roadmap</h2>
         <div class="grid-cards">
           <div class="card">
-            <h3><span>✅</span> Bereits Implementiert</h3>
+            <h3><span>✅</span> Already Implemented</h3>
             <p>
-              • ASCII-Levelparser mit Wänden, Decken, Böden und Türen<br />
-              • Lava-Pools mit Fluid-Surface-Animation und Lichtschein<br />
-              • 320×200 VGA-Scaling mit Pixel-Filtering und Pillarboxing<br />
-              • WebGPU / WebGL2 / WebGL1 Renderer-Override-Unterstützung
+              • Binary Doom WAD loader &amp; BSP physics (<code>e1m1.wad</code>) + ASCII grid builder (<code>level1.txt</code>)<br />
+              • Complete 7-weapon arsenal (keys 1–6 + Chainsaw), split ammo &amp; all 6 keycards/skull keys<br />
+              • Freedoom 0.13.0 soundscape, spatial enemy cues &amp; rendered MIDI soundtracks<br />
+              • Doom-styled Game Settings (live 320×200–1280×800 resolution, FOV, brightness, audio, level switch)
             </p>
           </div>
           <div class="card">
-            <h3><span>🔜</span> Geplante Features</h3>
+            <h3><span>🔜</span> Planned Features</h3>
             <p>
-              • Vollständige Billboarding-Sprite-Monster mit einfachen Patrouillen-Zuständen<br />
-              • Waffenanimationen mit Schuss-/Mündungsfeuer-Frames (Pistole & Shotgun)<br />
-              • Touch-Steuerung (virtuelles D-Pad & Action-Buttons für Mobilgeräte)<br />
-              • Multi-Floor-Aufzüge und Minikarte im Inspector-Drawer
+              • Full multi-angle enemy attack/pain/death sprite animations &amp; ranged projectiles<br />
+              • Persistent level-state save/load slots &amp; automap overlay<br />
+              • Touch controls (virtual D-pad &amp; action buttons for mobile devices)<br />
+              • Additional Freedoom episode levels &amp; par-time intermission screen
             </p>
           </div>
         </div>
       </section>
 
       <footer>
-        <p>Small World Machine // YAD Concept Dossier // Stand: Oktober 2026</p>
+        <p>Small World Machine // YAD Concept Dossier // As of November 2026</p>
         <p style="margin-top: 4px;">
-          <a href="../index.html">Direkt zur YAD App starten →</a> | <a href="log.md">Zum Living Dev Log →</a>
+          <a href="../src/index.html">Launch YAD App →</a> | <a href="log.md">View Living Dev Log →</a>
         </p>
       </footer>
     </div>

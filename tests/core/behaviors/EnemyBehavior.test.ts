@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from "vitest";
 import { EnemyBehavior } from "../../../src/core/behaviors/EnemyBehavior.js";
 import { ObjectTags } from "../../../src/enums/ObjectTags.js";
 import {
@@ -9,6 +10,7 @@ import {
   Scene,
   Vector3D,
 } from "@small-world-machine/engine";
+import type { AudioSystem } from "@small-world-machine/engine";
 
 function makeCamera(): Camera {
   return new Camera(new PerspectiveProjection());
@@ -123,5 +125,78 @@ describe("EnemyBehavior", () => {
     expect(enemy.scale.y).toBeCloseTo(0.2);
     expect(enemy.position.y).toBeCloseTo(0.2);
     expect(enemy.behaviors.length).toBe(0);
+  });
+
+  it("plays custom sight, active, pain, and death spatial sound cues", () => {
+    const scene = new Scene();
+    const player = makeCamera();
+    player.position.set(10, 0, 0);
+    const enemy = new Object3D("enemy");
+    enemy.position.set(0, 0, 0);
+    enemy.tag = ObjectTags.ENEMY;
+
+    const playSpatial = vi.fn();
+    const audio = { playSpatial } as unknown as AudioSystem;
+
+    const behavior = new EnemyBehavior({
+      player,
+      scene,
+      audio,
+      speed: 2.0,
+      detectionRange: 30.0,
+      maxHealth: 30,
+      sightSound: "imp_sight",
+      painSound: "pos_pain",
+      activeSound: "imp_active",
+      deathSound: "imp_death",
+    });
+    enemy.addBehavior(behavior);
+
+    // First update awakens enemy -> plays sightSound once, sets gruntTimer >= 3s
+    behavior.update(0.016);
+    expect(playSpatial).toHaveBeenCalledWith(
+      "imp_sight",
+      enemy.position,
+      false,
+      0.65,
+      2.5,
+      28.0,
+    );
+
+    // Advancing past max 7s grunt timer triggers activeSound
+    playSpatial.mockClear();
+    behavior.update(8.0);
+    expect(playSpatial).toHaveBeenCalledWith(
+      "imp_active",
+      enemy.position,
+      false,
+      0.5,
+      2.0,
+      25.0,
+    );
+
+    // Non-lethal hit -> painSound
+    playSpatial.mockClear();
+    expect(behavior.takeDamage(10)).toBe(false);
+    expect(playSpatial).toHaveBeenCalledWith(
+      "pos_pain",
+      enemy.position,
+      false,
+      0.7,
+      2.0,
+      25.0,
+    );
+
+    // Lethal hit -> deathSound
+    playSpatial.mockClear();
+    expect(behavior.takeDamage(25)).toBe(true);
+    expect(playSpatial).toHaveBeenCalledWith(
+      "imp_death",
+      enemy.position,
+      false,
+      0.8,
+      2.0,
+      20.0,
+    );
   });
 });
