@@ -32,3 +32,14 @@
   - `.devcontainer/devcontainer.json` mit automatischem Port-Forwarding (5173 für Vite Dev-Server, 4173 für Preview), `postCreateCommand: "npm install"` und JetBrains-Backend-Spezifikation (`customizations.jetbrains.backend: "PhpStorm"`) konfiguriert.
 - **Verifikation:** Dockerfile-Build lokal erfolgreich verifiziert.
 
+## 4. Release 0.1.1: Abhängigkeiten und Engine auf neuesten Stand aktualisiert (2026-11-22)
+
+- **Anlass:** Modernisierung aller Paket- und Entwicklungstools auf die neuesten stabilen Versionen.
+- **Änderung:**
+  - `@small-world-machine/engine`: Auf aktuellem Stand `0.128.0` (`packages-0.128.0`).
+  - `typescript`: Upgrade von `^6.0.3` auf `^7.0.2`.
+  - `vite`: Upgrade von `^8.2.0` auf `^8.3.8`.
+  - `vitest`: Upgrade von `^5.0.5` auf `^5.1.1`.
+  - `@types/node`: Upgrade von `^26.1.2` auf `^26.6.6`.
+  - `@webgpu/types`: Upgrade von `^0.1.71` auf `^0.1.74`.
+- **Verifikation:** `npm run typecheck`, `npm test` und `npm run build` fehlerfrei ausgeführt.
