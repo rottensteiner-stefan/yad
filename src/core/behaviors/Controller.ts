@@ -86,7 +86,7 @@ export class Controller extends FirstPersonController {
         );
 
         const scene = this._options.scene;
-        let candidates: Object3D[] = scene.objects;
+        let candidates: readonly Object3D[] = scene.objects;
         if (scene.staticOctree || scene.dynamicOctree || scene.spatialHash) {
           this._queryHits.length = 0;
           if (scene.staticOctree) {
@@ -102,7 +102,7 @@ export class Controller extends FirstPersonController {
         }
 
         // intersectObjects sorts by distance closest to furthest by default
-        const intersects = this._raycaster.intersectObjects(candidates, true);
+        const intersects = this._raycaster.intersectObjects(candidates as Object3D[], true);
 
         for (const intersect of intersects) {
           const obj = intersect.object;
