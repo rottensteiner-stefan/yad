@@ -123,6 +123,35 @@ export function sliceFaceSprites(options: FaceSliceOptions): Promise<HTMLCanvasE
     img.src = options.atlasUrl;
     img.onload = (): void => {
       const faces: HTMLCanvasElement[] = [];
+
+      // Direct grid slice for clean modern sprite strips (e.g. Freedoom face strip)
+      if (img.width <= options.outputWidth * 4) {
+        const cellH = Math.floor(img.height / options.faceCount);
+        for (let r = 0; r < options.faceCount; r++) {
+          const faceCanvas = document.createElement("canvas");
+          faceCanvas.width = options.outputWidth;
+          faceCanvas.height = options.outputHeight;
+          const faceCtx = faceCanvas.getContext("2d");
+          if (faceCtx) {
+            faceCtx.imageSmoothingEnabled = false;
+            faceCtx.drawImage(
+              img,
+              0,
+              r * cellH,
+              img.width,
+              cellH,
+              0,
+              0,
+              options.outputWidth,
+              options.outputHeight,
+            );
+            faces.push(faceCanvas);
+          }
+        }
+        resolve(faces);
+        return;
+      }
+
       const offCanvas = document.createElement("canvas");
       offCanvas.width = img.width;
       offCanvas.height = img.height;

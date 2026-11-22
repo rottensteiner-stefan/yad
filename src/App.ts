@@ -1,6 +1,9 @@
 import { LevelBuilder } from "./core/LevelBuilder.js";
 import { Controller } from "./core/behaviors/Controller.js";
+import { loadGameSettings } from "./core/GameSettings.js";
+import type { GameSettingsData } from "./core/GameSettings.js";
 import { Hud } from "./core/Hud.js";
+import { SettingsMenu } from "./core/SettingsMenu.js";
 import { WeaponView } from "./core/WeaponView.js";
 import {
   AmbientLight,
@@ -11,14 +14,20 @@ import {
   getRendererTypeFromQuery,
   MathUtils,
   PerspectiveProjection,
+  PostProcessingEffectType,
   QuantizeElement,
   SmallWorldMachine,
   TextLoader,
   Texture,
+  ToneMappingMode,
   Vector3D,
   ZoomController,
 } from "@small-world-machine/engine";
-import type { FluidSurfaceMaterial, PointLight } from "@small-world-machine/engine";
+import type {
+  FluidSurfaceMaterial,
+  PointLight,
+  ToneMappingElement,
+} from "@small-world-machine/engine";
 
 /**
  * YAD (Yet Another Dungeon)
@@ -37,6 +46,12 @@ export class App extends SmallWorldMachine {
   private _hud!: Hud;
   private _weaponView!: WeaponView;
   private _playerController!: Controller;
+  private _ambientLight!: AmbientLight;
+  private _projection!: PerspectiveProjection;
+  private _toneMapping?: ToneMappingElement | undefined;
+  private _quantize?: QuantizeElement;
+  private _settings: GameSettingsData = loadGameSettings();
+  private _settingsMenu?: SettingsMenu;
 
   public get hud(): Hud {
     return this._hud;
@@ -44,6 +59,10 @@ export class App extends SmallWorldMachine {
 
   public get weaponView(): WeaponView {
     return this._weaponView;
+  }
+
+  public get settingsMenu(): SettingsMenu | undefined {
+    return this._settingsMenu;
   }
 
   /** @inheritdoc */
@@ -79,18 +98,23 @@ export class App extends SmallWorldMachine {
     resizeCanvas(); // Trigger immediately to scale the view
 
     // 1. Camera Setup
-    this.camera.projection = new PerspectiveProjection({
-      fov: MathUtils.degToRad(75),
+    this._projection = new PerspectiveProjection({
+      fov: MathUtils.degToRad(this._settings.fov),
       aspect: this.camera.aspect,
       near: 0.1,
       far: 500,
     });
+    this.camera.projection = this._projection;
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.phi = 0; // Look straight ahead
 
-    // 1.5 Global Lights
-    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));
+    // 1.5 Global Lights (Engine 0.128.0 divides PBR ambient irradiance by pi, so Math.PI gives unit ambient response)
+    this._ambientLight = new AmbientLight({
+      color: Color.WHITE,
+      intensity: Math.PI * this._settings.levelBrightness,
+    });
+    this.scene.add(this._ambientLight);
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.6 });
     sun.direction.set(-1, -1, -1).normalize();
     this.scene.add(sun);
@@ -177,6 +201,9 @@ export class App extends SmallWorldMachine {
     await audio.load("/assets/sounds/footstep.wav", "footstep");
     await audio.load("/assets/sounds/hurt.wav", "hurt");
     await audio.load("/assets/sounds/pickup.wav", "pickup");
+    await audio.load("/assets/sounds/menu_open.wav", "menu_open");
+    await audio.load("/assets/sounds/menu_close.wav", "menu_close");
+    await audio.load("/assets/sounds/menu_move.wav", "menu_move");
 
     // 3. Load Level Data
     let mapData = localStorage.getItem("yad_custom_map");
@@ -200,6 +227,7 @@ export class App extends SmallWorldMachine {
       playerCamera: this.camera,
       audio: this.audio,
       events: this.events,
+      isPaused: (): boolean => this._settingsMenu?.isOpen ?? false,
       lavaFloorChars: ["T"], // Only T is lava now
       slimeFloorChars: ["~"],
       legend: {
@@ -270,6 +298,7 @@ export class App extends SmallWorldMachine {
     // 5. Controllers
     this._playerController = new Controller(this.events, {
       moveSpeed: 10.0,
+      retroTankControls: this._settings.tankControls,
       scene: this.scene,
       input: this.input,
       audio: this.audio,
@@ -297,15 +326,84 @@ export class App extends SmallWorldMachine {
     // 8. Apply Retro Color Banding (Quantization)
     if (this.renderer) {
       this.renderer.postProcessing.enabled = true;
-      const quant = new QuantizeElement();
-      quant.enabled = true;
-      quant.steps = 8.0; // 8 levels per RGB channel (3-bit color approximation)
-      this.renderer.postProcessing.add(quant);
+      this._toneMapping = this.renderer.postProcessing.get<ToneMappingElement>(
+        PostProcessingEffectType.TONE_MAPPING,
+      );
+      if (this._toneMapping) {
+        this._toneMapping.mode = ToneMappingMode.ACES_FILMIC;
+      }
+      this._quantize = new QuantizeElement();
+      this._quantize.enabled = this._settings.retroQuantize;
+      this._quantize.steps = 8.0; // 8 levels per RGB channel (3-bit color approximation)
+      this.renderer.postProcessing.add(this._quantize);
     }
+
+    // 9. Initialize Doom-style Game Settings Overlay
+    this._settingsMenu = new SettingsMenu({
+      parent: retroScreen,
+      initialSettings: this._settings,
+      onChange: (next): void => this._applySettings(next),
+      onSound: (kind): void => {
+        if (this.audio.context.state === "running") {
+          const cue =
+            kind === "open" ? "menu_open" : kind === "close" ? "menu_close" : "menu_move";
+          this.audio.play(cue, false, 0.55);
+        }
+      },
+      onRestartLevel: (): void => {
+        window.location.reload();
+      },
+      onOpenChange: (isOpen): void => {
+        if (this._playerController) {
+          this._playerController.enabled = !isOpen;
+        }
+        if (this._weaponView) {
+          this._weaponView.setCrosshairMode(this._settings.crosshair, isOpen);
+        }
+        this.input.preventPointerLock = isOpen;
+        if (isOpen && typeof document !== "undefined" && document.pointerLockElement) {
+          document.exitPointerLock();
+        }
+      },
+    });
+    this._applySettings(this._settings);
+  }
+
+  private _applySettings(next: GameSettingsData): void {
+    this._settings = next;
+    if (this._ambientLight) {
+      this._ambientLight.intensity = Math.PI * next.levelBrightness;
+    }
+    if (this._toneMapping) {
+      this._toneMapping.exposure = next.overallBrightness;
+    }
+    if (this._quantize) {
+      this._quantize.enabled = next.retroQuantize;
+    }
+    if (this._projection) {
+      this._projection.fov = MathUtils.degToRad(next.fov);
+      this.camera.updateProjectionMatrix();
+    }
+    if (this._playerController) {
+      this._playerController.retroTankControls = next.tankControls;
+    }
+    if (this._weaponView) {
+      this._weaponView.viewBobbing = next.viewBobbing;
+      this._weaponView.setCrosshairMode(next.crosshair, this._settingsMenu?.isOpen ?? false);
+    }
+    this.audio.setMasterVolume(next.masterVolume);
+    this.audio.setSFXVolume(next.sfxVolume);
+    this.audio.setMusicVolume(next.musicVolume);
+    this.audio.setReverbLevel(next.reverbLevel);
   }
 
   /** @inheritdoc */
   protected override update(deltaTime: number): void {
+    if (this._settingsMenu?.isOpen) {
+      this.audio.updateListener(this.camera);
+      return;
+    }
+
     this._time += deltaTime;
     for (const mat of this._lavaMaterials) {
       mat.time = this._time;

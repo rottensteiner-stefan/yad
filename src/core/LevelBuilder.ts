@@ -93,6 +93,8 @@ export interface YadLevelConfig {
   audio?: AudioSystem | undefined;
   /** Event bus item pickups are dispatched on. Without it, items can still be walked over but won't fire `Events.PICKUP`. */
   events?: EventDispatcherImpl;
+  /** Optional pause predicate forwarded to enemy AI behaviors. */
+  isPaused?: () => boolean;
 }
 
 /**
@@ -244,6 +246,7 @@ export class LevelBuilder {
                   audio: config.audio,
                   speed: 6.0,
                   detectionRange: 30.0,
+                  ...(config.isPaused ? { isPaused: config.isPaused } : {}),
                 }),
               );
             }

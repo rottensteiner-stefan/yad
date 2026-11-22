@@ -1,5 +1,6 @@
 import { Events } from "../Events.js";
 import type { EventDispatcherImpl } from "@small-world-machine/engine";
+import type { CrosshairMode } from "./GameSettings.js";
 
 export interface WeaponViewOptions {
   parent: HTMLElement;
@@ -20,9 +21,13 @@ export class WeaponView {
   private _pistolSprites: HTMLImageElement[] = [];
   private _pistolFlash!: HTMLImageElement;
   private _weaponFrame: number = 0;
+  private _crosshairMode: CrosshairMode = "dot";
+  private _crosshairHidden: boolean = false;
 
   private _lastBobX: number = 0;
   private _lastBobY: number = 0;
+
+  public viewBobbing: boolean = true;
 
   public get weaponFrame(): number {
     return this._weaponFrame;
@@ -62,14 +67,48 @@ export class WeaponView {
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      width: "4px",
-      height: "4px",
-      backgroundColor: "rgba(255, 255, 255, 0.5)",
       pointerEvents: "none",
       zIndex: "40",
-      borderRadius: "50%",
     });
     parent.appendChild(this._crosshair);
+    this._updateCrosshairVisual();
+  }
+
+  public setCrosshairMode(mode: CrosshairMode, hidden: boolean = this._crosshairHidden): void {
+    this._crosshairMode = mode;
+    this._crosshairHidden = hidden;
+    this._updateCrosshairVisual();
+  }
+
+  private _updateCrosshairVisual(): void {
+    if (!this._crosshair) {
+      return;
+    }
+    if (this._crosshairHidden || this._crosshairMode === "off") {
+      this._crosshair.style.display = "none";
+      return;
+    }
+    this._crosshair.style.display = "block";
+    if (this._crosshairMode === "dot") {
+      Object.assign(this._crosshair.style, {
+        width: "2px",
+        height: "2px",
+        backgroundColor: "rgba(255, 255, 255, 0.75)",
+        borderRadius: "0",
+        boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.65)",
+        backgroundImage: "none",
+      });
+    } else {
+      Object.assign(this._crosshair.style, {
+        width: "7px",
+        height: "7px",
+        backgroundColor: "transparent",
+        borderRadius: "0",
+        boxShadow: "none",
+        backgroundImage:
+          "linear-gradient(to right, transparent 3px, rgba(255, 255, 255, 0.85) 3px, rgba(255, 255, 255, 0.85) 4px, transparent 4px), linear-gradient(to bottom, transparent 3px, rgba(255, 255, 255, 0.85) 3px, rgba(255, 255, 255, 0.85) 4px, transparent 4px)",
+      });
+    }
   }
 
   private _createWeaponCanvas(parent: HTMLElement): void {
@@ -94,12 +133,12 @@ export class WeaponView {
     const frames = ["pisga0", "pisgb0", "pisgc0", "pisgd0", "pisge0"];
     for (const frame of frames) {
       const img = new Image();
-      img.src = `./assets/dungeon_pack/sprites/${frame}.webp`;
+      img.src = `/assets/dungeon_pack/sprites/${frame}.webp`;
       img.onload = (): void => this._drawWeapon(this._lastBobX, this._lastBobY);
       this._pistolSprites.push(img);
     }
     this._pistolFlash = new Image();
-    this._pistolFlash.src = `./assets/dungeon_pack/sprites/pisfa0.webp`;
+    this._pistolFlash.src = `/assets/dungeon_pack/sprites/pisfa0.webp`;
   }
 
   private _bindEvents(events: EventDispatcherImpl): void {
@@ -113,6 +152,8 @@ export class WeaponView {
     this._shootTimer = 400; // 400ms total animation
     this._weaponFrame = 1;
     if (this._weaponCanvas) {
+      this._lastBobX = 0;
+      this._lastBobY = 10;
       this._drawWeapon(0, 10);
     }
   }
@@ -132,28 +173,33 @@ export class WeaponView {
   public update(deltaTime: number, bobPhase: number): void {
     let offsetX = 0;
     let offsetY = 0;
+    const prevFrame = this._weaponFrame;
 
     if (this._shootTimer > 0) {
       this._shootTimer -= deltaTime * 1000;
 
-      let newFrame = 1;
-      if (this._shootTimer < 100) {
-        newFrame = 4; // pisge0
-      } else if (this._shootTimer < 200) {
-        newFrame = 3; // pisgd0
-      } else if (this._shootTimer < 300) {
-        newFrame = 2; // pisgc0
-      }
-
       if (this._shootTimer <= 0) {
+        this._shootTimer = 0;
         this._weaponFrame = 0;
+        if (this.viewBobbing) {
+          offsetX = Math.round(Math.sin(bobPhase * 0.5) * 6);
+          offsetY = Math.round(Math.abs(Math.sin(bobPhase)) * 4);
+        }
       } else {
-        this._weaponFrame = newFrame;
-      }
+        if (this._shootTimer < 100) {
+          this._weaponFrame = 4; // pisge0
+        } else if (this._shootTimer < 200) {
+          this._weaponFrame = 3; // pisgd0
+        } else if (this._shootTimer < 300) {
+          this._weaponFrame = 2; // pisgc0
+        } else {
+          this._weaponFrame = 1; // pisgb0
+        }
 
-      // Recoil drop
-      offsetY = 10;
-    } else {
+        // Recoil drop
+        offsetY = 10;
+      }
+    } else if (this.viewBobbing) {
       // Bobbing calculation without heap allocations or DOM string manipulation
       offsetX = Math.round(Math.sin(bobPhase * 0.5) * 6);
       offsetY = Math.round(Math.abs(Math.sin(bobPhase)) * 4);
@@ -161,7 +207,10 @@ export class WeaponView {
 
     if (
       this._weaponCanvas &&
-      (offsetX !== this._lastBobX || offsetY !== this._lastBobY || this._shootTimer > 0)
+      (offsetX !== this._lastBobX ||
+        offsetY !== this._lastBobY ||
+        this._weaponFrame !== prevFrame ||
+        this._shootTimer > 0)
     ) {
       this._lastBobX = offsetX;
       this._lastBobY = offsetY;

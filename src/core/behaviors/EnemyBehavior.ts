@@ -21,6 +21,7 @@ export interface EnemyBehaviorOptions {
   audio?: AudioSystem | undefined;
   speed?: number;
   detectionRange?: number;
+  isPaused?: () => boolean;
 }
 
 export class EnemyBehavior extends Behavior {
@@ -32,6 +33,7 @@ export class EnemyBehavior extends Behavior {
   private _potentialHits: Collidable[] = [];
   private _audio?: AudioSystem | undefined;
   private _gruntTimer: number = 0;
+  private _isPaused?: (() => boolean) | undefined;
 
   constructor(options: EnemyBehaviorOptions) {
     super();
@@ -40,6 +42,7 @@ export class EnemyBehavior extends Behavior {
     this._audio = options.audio;
     this._speed = options.speed ?? 3.0;
     this._detectionRange = options.detectionRange ?? 20.0;
+    this._isPaused = options.isPaused;
   }
 
   public override onAttach(target: Object3D): void {
@@ -69,6 +72,7 @@ export class EnemyBehavior extends Behavior {
   }
 
   public override update(deltaTime: number): void {
+    if (this._isPaused?.()) return;
     if (!this.target || (this.target as Object3D).tag === ObjectTags.DEAD_ENEMY) return;
 
     const dx = this._player.position.x - this.target.position.x;

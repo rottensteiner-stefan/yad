@@ -260,13 +260,18 @@ export class Hud {
     const keyColors = ["blue", "yellow", "red"];
     for (let i = 0; i < 3; i++) {
       const slotIndex = i * 2; // Left column
-      if (this._keycardSlots[slotIndex]) {
+      const slot = this._keycardSlots[slotIndex];
+      if (slot) {
         if (this._keycards.includes(keyColors[i]!)) {
-          const hex =
-            keyColors[i] === "blue" ? "#0000ff" : keyColors[i] === "red" ? "#ff0000" : "#ffff00";
-          this._keycardSlots[slotIndex]!.style.backgroundColor = hex;
+          slot.style.backgroundColor = "rgba(0, 0, 0, 0.35)";
+          slot.style.backgroundImage = `url('/assets/dungeon_pack/ui/stkeys${i}.webp')`;
+          slot.style.backgroundRepeat = "no-repeat";
+          slot.style.backgroundPosition = "center";
+          slot.style.backgroundSize = "contain";
+          slot.style.imageRendering = "pixelated";
         } else {
-          this._keycardSlots[slotIndex]!.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
+          slot.style.backgroundColor = "rgba(0, 0, 0, 0.4)";
+          slot.style.backgroundImage = "none";
         }
       }
     }

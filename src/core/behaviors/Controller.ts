@@ -50,6 +50,14 @@ export class Controller extends FirstPersonController {
     if (!options.input) throw new Error("Controller requires an 'input' option.");
   }
 
+  public get retroTankControls(): boolean {
+    return this._options.retroTankControls;
+  }
+
+  public set retroTankControls(value: boolean) {
+    this._options.retroTankControls = value;
+  }
+
   public override update(deltaTime: number): void {
     if (!this.enabled || !this.target) {
       return;
