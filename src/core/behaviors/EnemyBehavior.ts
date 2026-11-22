@@ -47,6 +47,27 @@ export class EnemyBehavior extends Behavior {
     this._collider = new BoundingSphere(target.position.clone(), 0.5);
   }
 
+  public kill(audio?: AudioSystem): void {
+    if (!this.target) return;
+    const targetObj = this.target as Object3D;
+    if (targetObj.tag === ObjectTags.DEAD_ENEMY) return;
+
+    targetObj.tag = ObjectTags.DEAD_ENEMY;
+    targetObj.scale.y = 0.2; // squash to "dead"
+    targetObj.position.y = 0.2; // drop to floor
+
+    const audioToUse = audio ?? this._audio;
+    if (audioToUse) {
+      audioToUse.playSpatial("enemy_death", targetObj.position, false, 0.8, 2.0, 20.0);
+    }
+
+    // Stop and detach all behaviors from target
+    const behaviors = [...targetObj.behaviors];
+    for (const b of behaviors) {
+      targetObj.removeBehavior(b);
+    }
+  }
+
   public override update(deltaTime: number): void {
     if (!this.target || (this.target as Object3D).tag === ObjectTags.DEAD_ENEMY) return;
 

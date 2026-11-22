@@ -9,10 +9,14 @@ import type {
 } from "@small-world-machine/engine";
 import { Events } from "../../Events.js";
 import { ObjectTags } from "../../enums/ObjectTags.js";
+import { EnemyBehavior } from "./EnemyBehavior.js";
+import type { HazardGrid } from "../LevelBuilder.js";
 
 export interface ControllerOptions extends FirstPersonControllerOptions {
   /** Audio system for footstep, shot and hurt sounds. */
   audio?: AudioSystem;
+  /** Spatial hazard lookup for O(1) lava and slime damage. */
+  hazardGrid?: HazardGrid;
 }
 
 /**
@@ -20,10 +24,11 @@ export interface ControllerOptions extends FirstPersonControllerOptions {
  * It extends FirstPersonController and adds shooting, weapon selection, and damage logic.
  */
 export class Controller extends FirstPersonController {
-  private _lastShotTime: number = 0;
-  private _lastHurtTime: number = 0;
+  private _lastShotTime: number = -1000;
+  private _lastHurtTime: number = -1000;
 
   private _audio?: AudioSystem | undefined;
+  private _hazardGrid?: HazardGrid | undefined;
   private _raycaster: Raycaster = new Raycaster();
   private _screenCenter: Vector2D = new Vector2D(0, 0);
   private _queryHits: Collidable[] = [];
@@ -38,9 +43,10 @@ export class Controller extends FirstPersonController {
     options: ControllerOptions = {},
   ) {
     // Force retro tank controls for Dungeon feel
-    const { audio, ...baseOptions } = options;
+    const { audio, hazardGrid, ...baseOptions } = options;
     super({ ...baseOptions, retroTankControls: true });
     this._audio = audio;
+    this._hazardGrid = hazardGrid;
     if (!options.input) throw new Error("Controller requires an 'input' option.");
   }
 
@@ -108,16 +114,18 @@ export class Controller extends FirstPersonController {
           const obj = intersect.object;
 
           if (obj.tag === ObjectTags.ENEMY && obj.isVisible && obj.scale.y > 0.5) {
-            // HIT AN ENEMY!
-            obj.tag = ObjectTags.DEAD_ENEMY; // prevent shooting again
-            obj.scale.y = 0.2; // squash to "dead"
-            obj.position.y = 0.2; // drop to floor
-
-            // Stop bobbing and other behaviors
-            [...obj.behaviors].forEach((b) => obj.removeBehavior(b));
-
-            if (this._audio)
-              this._audio.playSpatial("enemy_death", obj.position, false, 0.8, 2.0, 20.0);
+            // HIT AN ENEMY! Encapsulated death handling without leaking internal node mutations
+            const enemyBehavior = obj.behaviors.find((b): b is EnemyBehavior => b instanceof EnemyBehavior);
+            if (enemyBehavior) {
+              enemyBehavior.kill(this._audio);
+            } else {
+              obj.tag = ObjectTags.DEAD_ENEMY;
+              obj.scale.y = 0.2;
+              obj.position.y = 0.2;
+              if (this._audio) {
+                this._audio.playSpatial("enemy_death", obj.position, false, 0.8, 2.0, 20.0);
+              }
+            }
             break; // Bullet stops at the enemy
           }
 
@@ -130,26 +138,15 @@ export class Controller extends FirstPersonController {
       }
     }
 
-    // 5. Environment checks (Lava/Slime Damage -- item pickup is a ProximitySensorBehavior
-    // attached directly to each item in LevelBuilder, the same idiom already used for doors)
-    if (this._options.scene) {
-      for (const obj of this._options.scene.objects) {
-        // Damage (Lava / Slime)
-        if (
-          (obj.tag === ObjectTags.LAVA || obj.tag === ObjectTags.SLIME) &&
-          now - this._lastHurtTime > 1000
-        ) {
-          const dx = obj.position.x - this.target.position.x;
-          const dz = obj.position.z - this.target.position.z;
-          if (dx * dx + dz * dz < 1.0) {
-            // Standing right on it
-            this._lastHurtTime = now;
-            if (this._audio) this._audio.play("hurt", false, 0.8);
+    // 5. Environment checks: O(1) HazardGrid lookup (Lava / Slime Damage) instead of O(N) scene scans
+    if (this._hazardGrid && now - this._lastHurtTime > 1000) {
+      const hazard = this._hazardGrid.getHazardAt(this.target.position.x, this.target.position.z);
+      if (hazard) {
+        this._lastHurtTime = now;
+        if (this._audio) this._audio.play("hurt", false, 0.8);
 
-            // Dispatch custom event for HUD
-            this.events.dispatchEvent(Events.DAMAGE, { amount: 10 });
-          }
-        }
+        // Dispatch custom event for HUD
+        this.events.dispatchEvent(Events.DAMAGE, { amount: 10 });
       }
     }
   }

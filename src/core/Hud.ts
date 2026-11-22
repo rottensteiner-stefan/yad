@@ -1,24 +1,12 @@
 import { Events } from "../Events.js";
+import type { DamagePayload, PickupPayload, WeaponPayload } from "../Events.js";
 import type { EventDispatcherImpl } from "@small-world-machine/engine";
 import type { SpriteFontVariant } from "./SpriteAtlas.js";
 import { generateSpriteFontChars, sliceFaceSprites } from "./SpriteAtlas.js";
-
-interface DamagePayload {
-  amount: number;
-}
-
-interface PickupPayload {
-  type: string;
-  amount: number;
-  color?: string;
-}
-
-interface WeaponPayload {
-  index: number;
-}
+import type { WeaponView } from "./WeaponView.js";
 
 export class Hud {
-  private _container: HTMLDivElement;
+  private _container?: HTMLDivElement;
   private _healthEl!: HTMLCanvasElement;
   private _armorEl!: HTMLCanvasElement;
   private _ammoEl!: HTMLCanvasElement;
@@ -38,216 +26,92 @@ export class Hud {
   private _armor: number = 0;
   private _ammo: number = 50;
 
-  constructor(private events: EventDispatcherImpl) {
-    // Load local game fonts (Dungeon, VT323; no network fonts)
-    if (!document.getElementById("dungeon-font-style")) {
-      const style = document.createElement("style");
-      style.id = "dungeon-font-style";
-      style.innerHTML = `
-        @font-face {
-          font-family: 'Dungeon';
-          src: url('/assets/fonts/Dungeon.woff2') format('woff2');
-          font-weight: normal;
-          font-style: normal;
-          font-display: swap;
-        }
-        @font-face {
-          font-family: 'VT323';
-          src: url('/assets/fonts/VT323-Regular.woff2') format('woff2');
-          font-weight: normal;
-          font-style: normal;
-          font-display: swap;
-        }
-      `;
-      document.head.appendChild(style);
+  public get health(): number {
+    return this._health;
+  }
+
+  public get armor(): number {
+    return this._armor;
+  }
+
+  public get ammo(): number {
+    return this._ammo;
+  }
+
+  public get keycards(): readonly string[] {
+    return this._keycards;
+  }
+
+  constructor(
+    private events: EventDispatcherImpl,
+    private _weaponView?: WeaponView,
+  ) {
+    if (typeof document !== "undefined") {
+      // Load local game fonts (Dungeon, VT323; no network fonts)
+      if (!document.getElementById("dungeon-font-style")) {
+        const style = document.createElement("style");
+        style.id = "dungeon-font-style";
+        style.innerHTML = `
+          @font-face {
+            font-family: 'Dungeon';
+            src: url('/assets/fonts/Dungeon.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+          }
+          @font-face {
+            font-family: 'VT323';
+            src: url('/assets/fonts/VT323-Regular.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      this._container = document.createElement("div");
+      this._container.id = "yad-hud";
+      Object.assign(this._container.style, {
+        position: "absolute",
+        bottom: "0",
+        left: "0",
+        width: "100%",
+        height: "32px", // 32px is exactly 16% of the 200px screen, authentic Dungeon scale
+        display: "flex",
+        flexDirection: "row",
+        backgroundImage: "url('/assets/dungeon_pack/textures/graywide.webp')",
+        backgroundRepeat: "repeat",
+        backgroundSize: "64px 64px", // Scale down the background texture appropriately
+        fontFamily: "'VT323', monospace", // Webfont for all standard text
+        color: "white",
+        userSelect: "none",
+        zIndex: "100",
+      });
+
+      this._createSegments();
+
+      const retroScreen = document.getElementById("retro-screen");
+      if (retroScreen) {
+        retroScreen.appendChild(this._container);
+      } else {
+        document.body.appendChild(this._container);
+      }
+
+      this._loadAndSliceFace();
+
+      // Wait for Dungeon font to load before first render
+      document.fonts.ready.then((): void => {
+        this._generateSpriteFonts();
+        this._updateDisplay();
+      });
     }
-
-    this._container = document.createElement("div");
-    this._container.id = "yad-hud";
-    Object.assign(this._container.style, {
-      position: "absolute",
-      bottom: "0",
-      left: "0",
-      width: "100%",
-      height: "32px", // 32px is exactly 16% of the 200px screen, authentic Dungeon scale
-      display: "flex",
-      flexDirection: "row",
-      backgroundImage: "url('/assets/dungeon_pack/textures/graywide.webp')",
-      backgroundRepeat: "repeat",
-      backgroundSize: "64px 64px", // Scale down the background texture appropriately
-      fontFamily: "'VT323', monospace", // Webfont for all standard text
-      color: "white",
-      userSelect: "none",
-      zIndex: "100",
-    });
-
-    this._createSegments();
-
-    const retroScreen = document.getElementById("retro-screen");
-    if (retroScreen) {
-      retroScreen.appendChild(this._container);
-      this._createWeaponOverlay(retroScreen);
-    } else {
-      document.body.appendChild(this._container);
-    }
-
-    this._loadAndSliceFace();
-
-    // Wait for Dungeon font to load before first render
-    document.fonts.ready.then((): void => {
-      this._generateSpriteFonts();
-      this._updateDisplay();
-    });
 
     this._bindEvents();
   }
 
-  private _weaponCanvas!: HTMLCanvasElement;
-  private _flashOverlay!: HTMLElement;
-  private _shootTimer: number = 0;
-  private _pistolSprites: HTMLImageElement[] = [];
-  private _pistolFlash!: HTMLImageElement;
-  private _weaponFrame: number = 0;
-
-  private _loadWeaponSprites(): void {
-    const frames = ["pisga0", "pisgb0", "pisgc0", "pisgd0", "pisge0"];
-    for (const frame of frames) {
-      const img = new Image();
-      img.src = `./assets/dungeon_pack/sprites/${frame}.webp`;
-      img.onload = (): void => this._drawWeapon();
-      this._pistolSprites.push(img);
-    }
-    this._pistolFlash = new Image();
-    this._pistolFlash.src = `./assets/dungeon_pack/sprites/pisfa0.webp`;
-  }
-
-  private _createWeaponOverlay(parent: HTMLElement): void {
-    // 0. Create Flash Overlay
-    this._flashOverlay = document.createElement("div");
-    Object.assign(this._flashOverlay.style, {
-      position: "absolute",
-      inset: "0",
-      pointerEvents: "none",
-      zIndex: "60",
-      transition: "background-color 0.3s ease",
-      backgroundColor: "transparent",
-    });
-    parent.appendChild(this._flashOverlay);
-
-    // 1. Create Crosshair
-    const crosshair = document.createElement("div");
-    Object.assign(crosshair.style, {
-      position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      width: "4px",
-      height: "4px",
-      backgroundColor: "rgba(255, 255, 255, 0.5)",
-      pointerEvents: "none",
-      zIndex: "40",
-      borderRadius: "50%", // a simple dot or square crosshair
-    });
-    parent.appendChild(crosshair);
-
-    // 2. Create Weapon Canvas
-    this._weaponCanvas = document.createElement("canvas");
-    this._weaponCanvas.width = 128; // Original retro dungeon weapon sprites are usually around 100x100
-    this._weaponCanvas.height = 128;
-    Object.assign(this._weaponCanvas.style, {
-      position: "absolute",
-      bottom: "32px",
-      left: "50%",
-      transform: "translateX(-50%)",
-      width: "128px", // Native retro size
-      height: "128px",
-      imageRendering: "pixelated",
-      pointerEvents: "none",
-      zIndex: "50",
-    });
-
-    parent.appendChild(this._weaponCanvas);
-    this._loadWeaponSprites();
-  }
-
-  private _drawWeapon(): void {
-    const ctx = this._weaponCanvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, this._weaponCanvas.width, this._weaponCanvas.height);
-
-    const sprite = this._pistolSprites[this._weaponFrame];
-    if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-      // Draw centered at the bottom
-      const dx = (this._weaponCanvas.width - sprite.width) / 2;
-      const dy = this._weaponCanvas.height - sprite.height;
-      ctx.drawImage(sprite, dx, dy);
-    }
-
-    // Draw flash if frame is 1 (the moment of firing)
-    if (
-      this._weaponFrame === 1 &&
-      this._pistolFlash &&
-      this._pistolFlash.complete &&
-      this._pistolFlash.naturalWidth > 0
-    ) {
-      // Pistol flash position is roughly above the barrel. Needs tweaking based on sprite dimensions.
-      // Usually Dungeon engine handles offsets via wad metadata, but we'll hardcode a decent offset.
-      const dx = (this._weaponCanvas.width - this._pistolFlash.width) / 2 - 10;
-      const dy =
-        this._weaponCanvas.height - (sprite ? sprite.height : 64) - this._pistolFlash.height + 20;
-      ctx.drawImage(this._pistolFlash, dx, dy);
-    }
-  }
-
-  public triggerShoot(): void {
-    if (this._weaponFrame > 0) return; // Already shooting
-    this._shootTimer = 400; // 400ms total animation (100ms per frame)
-    this._weaponFrame = 1;
-    this._drawWeapon();
-  }
-
-  public update(deltaTime: number, bobPhase: number): void {
-    if (this._shootTimer > 0) {
-      this._shootTimer -= deltaTime * 1000;
-
-      // Determine frame based on remaining time (4 frames: 1, 2, 3, 4)
-      let newFrame = 1;
-      if (this._shootTimer < 100)
-        newFrame = 4; // pisge0
-      else if (this._shootTimer < 200)
-        newFrame = 3; // pisgd0
-      else if (this._shootTimer < 300) newFrame = 2; // pisgc0
-
-      if (newFrame !== this._weaponFrame) {
-        this._weaponFrame = newFrame;
-        this._drawWeapon();
-      }
-
-      if (this._shootTimer <= 0) {
-        this._weaponFrame = 0;
-        this._drawWeapon();
-      }
-
-      // Apply slight recoil to the whole canvas while shooting
-      this._weaponCanvas.style.transform = `translate(calc(-50%), 10px)`;
-    } else {
-      // Apply bobbing when not shooting
-      // Calmed down: half frequency for left-right (one sweep per 2 steps) and lower amplitude
-      const bobX = Math.sin(bobPhase * 0.5) * 6;
-      const bobY = Math.abs(Math.sin(bobPhase)) * 4;
-      this._weaponCanvas.style.transform = `translate(calc(-50% + ${bobX}px), ${bobY}px)`;
-    }
-  }
-
   private _triggerFlash(color: string): void {
-    if (!this._flashOverlay) return;
-    this._flashOverlay.style.transition = "none";
-    this._flashOverlay.style.backgroundColor = color;
-    // Force reflow
-    void this._flashOverlay.offsetWidth;
-    this._flashOverlay.style.transition = "background-color 0.5s ease-out";
-    this._flashOverlay.style.backgroundColor = "transparent";
+    this._weaponView?.triggerFlash(color);
   }
 
   private _bindEvents(): void {
@@ -271,7 +135,7 @@ export class Hud {
 
     this.events.addEventListener(Events.PICKUP, (e: Record<string, unknown>) => {
       const payload = e as unknown as PickupPayload;
-      const { type } = payload;
+      const type = payload.itemType ?? (payload.type !== Events.PICKUP ? payload.type : undefined);
       const amount = payload.amount || 0;
       if (type === "armor") {
         this._armor = Math.min(200, this._armor + amount);
@@ -280,7 +144,6 @@ export class Hud {
         this._health = Math.min(200, this._health + amount);
         this._triggerFlash("rgba(0, 0, 255, 0.3)"); // Blue flash
       } else if (type === "weapon") {
-        // Weapon flash
         this._triggerFlash("rgba(255, 255, 0, 0.3)"); // Yellow flash
       } else if (type === "ammo") {
         this._ammo = Math.min(200, this._ammo + amount);
@@ -306,10 +169,6 @@ export class Hud {
       if (index) {
         this._updateWeaponDisplay(index);
       }
-    });
-
-    this.events.addEventListener(Events.SHOOT, (): void => {
-      this.triggerShoot();
     });
   }
 
@@ -473,7 +332,7 @@ export class Hud {
       alignItems: "center",
       overflow: "hidden",
     });
-    this._container.appendChild(el);
+    this._container?.appendChild(el);
     return el;
   }
 

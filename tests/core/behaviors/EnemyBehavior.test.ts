@@ -105,4 +105,23 @@ describe("EnemyBehavior", () => {
 
     expect(enemy.position.x).toBeCloseTo(0);
   });
+
+  it("handles kill() by tagging DEAD_ENEMY, squashing scale, and dropping position", () => {
+    const scene = new Scene();
+    const player = makeCamera();
+    const enemy = new Object3D("enemy");
+    enemy.position.set(2, 1, 2);
+    enemy.scale.set(1, 2, 1);
+    enemy.tag = ObjectTags.ENEMY;
+
+    const behavior = new EnemyBehavior({ player, scene });
+    enemy.addBehavior(behavior);
+
+    behavior.kill();
+
+    expect(enemy.tag).toBe(ObjectTags.DEAD_ENEMY);
+    expect(enemy.scale.y).toBeCloseTo(0.2);
+    expect(enemy.position.y).toBeCloseTo(0.2);
+    expect(enemy.behaviors.length).toBe(0);
+  });
 });

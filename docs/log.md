@@ -43,3 +43,17 @@
   - `@types/node`: Upgrade von `^26.1.2` auf `^26.6.6`.
   - `@webgpu/types`: Upgrade von `^0.1.71` auf `^0.1.74`.
 - **Verifikation:** `npm run typecheck`, `npm test` und `npm run build` fehlerfrei ausgeführt.
+
+## 5. Thermonukleares Refactoring & Architektur-Härtung (2026-11-22)
+
+- **Anlass:** Funde aus dem thermonuklearen Code-Quality-Review adressieren (SRP-Verletzungen, Hot-Path-Heap-Allokationen, O(N)-Szenen-Scanning, Leckage von Gegnerlogik).
+- **Änderung:**
+  - `WeaponView.ts`: Aus `Hud.ts` extrahiert. Waffen-Bobbing und Recoil laufen ohne DOM-Style-String-Allokationen direkt im 2D-Canvas-Kontext (Zero-GC Hot Path).
+  - `Hud.ts`: Auf reine Statusbar-Logik reduziert, doppelter `Events.SHOOT`-Listener und DOM-Thrashing beseitigt.
+  - `HazardGrid`: In `LevelBuilder.ts` eingeführt; ersetzt die lineare $O(N)$-Szene-Objekt-Prüfung im `Controller.update()` durch diskrete $O(1)$-Grid-Lookups.
+  - `EnemyBehavior.kill()`: Tötungslogik (Squash, Position, Audio, Behavior-Cleanup) sauber im Enemy gekapselt; `Controller.ts` mutiert keine fremden Objekt-Nodes mehr direkt.
+  - `SpriteAtlas.ts`: Scratch-Canvas-Wiederverwendung statt hunderten Einweg-DOM-Canvases.
+  - `Events.ts`: Strikte Typverträge (`PickupPayload`, `DamagePayload`, `WeaponPayload`) eingeführt und `itemType`-Kollision behoben.
+  - Instanzierte Wände in `LevelBuilder.ts`: Wiederverwendung einer Scratch-`Matrix4` statt Heap-Allokation pro Wand-Tile.
+  - Testsuite: Umfassende Vitest-Tests für `WeaponView`, `Hud`, `Controller`, `HazardGrid` und `Events` ergänzt (13 Tests, alle grün).
+- **Verifikation:** `npm run typecheck`, `npm test` (13/13 bestanden), `npm run build` erfolgreich.

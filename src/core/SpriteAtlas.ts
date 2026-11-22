@@ -21,6 +21,21 @@ export function generateSpriteFontChars(
     const img = new Image();
     img.src = atlasUrl;
     img.onload = (): void => {
+      const fgCanvas = document.createElement("canvas");
+      fgCanvas.width = charWidth;
+      fgCanvas.height = charHeight;
+      const fgCtx = fgCanvas.getContext("2d");
+
+      const shCanvas = document.createElement("canvas");
+      shCanvas.width = charWidth;
+      shCanvas.height = charHeight;
+      const shCtx = shCanvas.getContext("2d");
+
+      if (!fgCtx || !shCtx) {
+        resolve();
+        return;
+      }
+
       for (let i = 0; i < chars.length; i++) {
         const char = chars[i];
         if (!char || char === " ") continue;
@@ -32,11 +47,9 @@ export function generateSpriteFontChars(
           const ctx = canvas.getContext("2d");
           if (!ctx) continue;
 
-          const fgCanvas = document.createElement("canvas");
-          fgCanvas.width = charWidth;
-          fgCanvas.height = charHeight;
-          const fgCtx = fgCanvas.getContext("2d");
-          if (!fgCtx) continue;
+          // Render foreground tinted character
+          fgCtx.globalCompositeOperation = "source-over";
+          fgCtx.clearRect(0, 0, charWidth, charHeight);
           fgCtx.drawImage(
             img,
             i * charWidth,
@@ -52,11 +65,9 @@ export function generateSpriteFontChars(
           fgCtx.fillStyle = variant.hex;
           fgCtx.fillRect(0, 0, charWidth, charHeight);
 
-          const shCanvas = document.createElement("canvas");
-          shCanvas.width = charWidth;
-          shCanvas.height = charHeight;
-          const shCtx = shCanvas.getContext("2d");
-          if (!shCtx) continue;
+          // Render shadow (black tinted)
+          shCtx.globalCompositeOperation = "source-over";
+          shCtx.clearRect(0, 0, charWidth, charHeight);
           shCtx.drawImage(
             img,
             i * charWidth,
@@ -72,6 +83,7 @@ export function generateSpriteFontChars(
           shCtx.fillStyle = "#000000";
           shCtx.fillRect(0, 0, charWidth, charHeight);
 
+          // Composite to output character canvas
           ctx.drawImage(shCanvas, 1, 1);
           ctx.drawImage(fgCanvas, 0, 0);
 

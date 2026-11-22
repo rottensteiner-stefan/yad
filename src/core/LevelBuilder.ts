@@ -31,12 +31,32 @@ import type {
 } from "@small-world-machine/engine";
 import { EnemyBehavior } from "./behaviors/EnemyBehavior.js";
 import { ObjectTags } from "../enums/ObjectTags.js";
+import type { ObjectTag } from "../enums/ObjectTags.js";
 import { Events } from "../Events.js";
 
 /** How close the player needs to be (in world units) to pick up an item. */
 const PICKUP_RADIUS = 1.5;
 export type YadTileType =
   "wall" | "door" | "sprite" | "column" | "lavaBall" | "playerSpawn" | "floor";
+
+export class HazardGrid {
+  private _cells: Map<string, ObjectTag> = new Map();
+  private _gridSize: number;
+
+  constructor(gridSize: number = 2.0) {
+    this._gridSize = gridSize;
+  }
+
+  public addHazard(worldX: number, worldZ: number, tag: ObjectTag): void {
+    const key = `${Math.round(worldX / this._gridSize)},${Math.round(worldZ / this._gridSize)}`;
+    this._cells.set(key, tag);
+  }
+
+  public getHazardAt(worldX: number, worldZ: number): ObjectTag | undefined {
+    const key = `${Math.round(worldX / this._gridSize)},${Math.round(worldZ / this._gridSize)}`;
+    return this._cells.get(key);
+  }
+}
 
 export interface YadLegendEntry {
   type: YadTileType;
@@ -90,6 +110,7 @@ export class LevelBuilder {
     playerStart: Vector3D;
     lavaMaterials: FluidSurfaceMaterial[];
     lavaLights: PointLight[];
+    hazardGrid: HazardGrid;
   }> {
     const lavaMaterials: FluidSurfaceMaterial[] = [];
     const lavaLights: PointLight[] = [];
@@ -238,7 +259,11 @@ export class LevelBuilder {
                     sprite.isVisible = false;
                     if (config.audio) config.audio.play("pickup", false, 0.8);
                     if (config.events) {
-                      config.events.dispatchEvent(Events.PICKUP, { type: itemType, amount: 20 });
+                      config.events.dispatchEvent(Events.PICKUP, {
+                        itemType,
+                        type: itemType,
+                        amount: 20,
+                      });
                     }
                   },
                 }),
@@ -353,15 +378,16 @@ export class LevelBuilder {
       );
       wallInstanced.initInstanceData(4);
 
+      const scratchMat4 = new Matrix4();
+      const scratchPos = new Vector3D(0, 0, 0);
+      const scratchRot = new Vector3D(0, 0, 0);
+      const scratchScale = new Vector3D(1, this._wallHeight / this._gridSize, 1);
+
       for (let i = 0; i < wallPositions.length; i++) {
         const pos = wallPositions[i]!;
-        const mat4 = new Matrix4();
-        mat4.compose(
-          new Vector3D(pos.x, pos.y, pos.z),
-          new Vector3D(0, 0, 0),
-          new Vector3D(1, this._wallHeight / this._gridSize, 1),
-        );
-        wallInstanced.setMatrixAt(i, mat4);
+        scratchPos.set(pos.x, pos.y, pos.z);
+        scratchMat4.compose(scratchPos, scratchRot, scratchScale);
+        wallInstanced.setMatrixAt(i, scratchMat4);
         wallInstanced.setInstanceDataAt(i, [pos.texIndex, 0, 0, 0]);
 
         // Add a hidden collider for physics AND the player/camera path. R5/D6: this is the
@@ -383,8 +409,15 @@ export class LevelBuilder {
       scene.add(wallInstanced);
     }
 
+    const hazardGrid = new HazardGrid(this._gridSize);
+    for (const obj of scene.objects) {
+      if (obj.tag === ObjectTags.LAVA || obj.tag === ObjectTags.SLIME) {
+        hazardGrid.addHazard(obj.position.x, obj.position.z, obj.tag as ObjectTag);
+      }
+    }
+
     const playerStart = new Vector3D(spawn.x, 1.0, spawn.z);
 
-    return { playerStart, lavaMaterials, lavaLights };
+    return { playerStart, lavaMaterials, lavaLights, hazardGrid };
   }
 }

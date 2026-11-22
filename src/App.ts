@@ -1,6 +1,7 @@
 import { LevelBuilder } from "./core/LevelBuilder.js";
 import { Controller } from "./core/behaviors/Controller.js";
 import { Hud } from "./core/Hud.js";
+import { WeaponView } from "./core/WeaponView.js";
 import {
   AmbientLight,
   BoundingBox,
@@ -34,10 +35,15 @@ export class App extends SmallWorldMachine {
   private _lavaMaterials: FluidSurfaceMaterial[] = [];
   private _lavaLights: PointLight[] = [];
   private _hud!: Hud;
+  private _weaponView!: WeaponView;
   private _playerController!: Controller;
 
   public get hud(): Hud {
     return this._hud;
+  }
+
+  public get weaponView(): WeaponView {
+    return this._weaponView;
   }
 
   /** @inheritdoc */
@@ -183,7 +189,10 @@ export class App extends SmallWorldMachine {
 
     // 4. Build Level
     const builder: LevelBuilder = new LevelBuilder();
-    const { playerStart, lavaMaterials, lavaLights } = await builder.build(this.scene, mapData, {
+    const { playerStart, lavaMaterials, lavaLights, hazardGrid } = await builder.build(
+      this.scene,
+      mapData,
+      {
       floorTexture: floorTex,
       ceilingTexture: ceilTex,
       lavaNoiseMap: lavaNoise,
@@ -264,6 +273,7 @@ export class App extends SmallWorldMachine {
       scene: this.scene,
       input: this.input,
       audio: this.audio,
+      hazardGrid,
     });
     this.camera.addBehavior(this._playerController);
     this.camera.addBehavior(new ZoomController({ input: this.input }));
@@ -276,8 +286,13 @@ export class App extends SmallWorldMachine {
     this.scene.updateStaticOctree();
     this.debug = false; // Disable visual debugging for collisions by default
 
-    // 7. Initialize HUD
-    this._hud = new Hud(this.events);
+    // 7. Initialize Weapon View & HUD
+    const retroScreen = document.getElementById("retro-screen") ?? document.body;
+    this._weaponView = new WeaponView({
+      parent: retroScreen,
+      events: this.events,
+    });
+    this._hud = new Hud(this.events, this._weaponView);
 
     // 8. Apply Retro Color Banding (Quantization)
     if (this.renderer) {
@@ -301,8 +316,8 @@ export class App extends SmallWorldMachine {
       light.intensity = 3.0 + pulse * 2.0;
     }
 
-    if (this._hud && this._playerController) {
-      this._hud.update(deltaTime, this._playerController.bobPhase);
+    if (this._weaponView && this._playerController) {
+      this._weaponView.update(deltaTime, this._playerController.bobPhase);
     }
 
     this.audio.updateListener(this.camera);

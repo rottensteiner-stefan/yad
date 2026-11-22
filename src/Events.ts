@@ -9,3 +9,21 @@ export const Events = {
   WEAPON: "app:yad:weapon",
   GAME_OVER: "app:yad:gameOver",
 } as const;
+
+export type PickupType = "armor" | "health" | "weapon" | "ammo" | "keycard";
+
+export interface DamagePayload {
+  amount: number;
+}
+
+export interface PickupPayload {
+  itemType?: PickupType;
+  type?: PickupType | string;
+  amount: number;
+  color?: string;
+}
+
+export interface WeaponPayload {
+  index: number;
+}
+
