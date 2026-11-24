@@ -166,3 +166,13 @@
   - `docs/concept-dossier.html`: Replaced stale sample-app badge, fixed-320x200 phrasing, and outdated ASCII grid excerpt/legend (`T` lava, `~` slime, `3–7` weapons, `a` shells, `k/y/r/K/Y/R` keys); added WAD pipeline summary and expanded subsystem table (`WadParser`, `WadLevelBuilder`, `WadPhysics`, `ZoomController`, `ToneMappingElement`, `AudioSystem`, `WeaponView`).
   - `package.json`, `package-lock.json`, `app.json`, `CHANGELOG.md`: Bumped version to `0.3.0` and added `0.3.0` release notes.
 - **Verification:** `npm run typecheck`, `npm test` (9/9 files, 28/28 tests), and `npm run build` passed.
+
+## 16. Engine Dependency Upgrade to 0.129.0 (2026-11-24)
+
+- **Trigger:** Update `@small-world-machine/engine` to the latest release (`packages-0.129.0`).
+- **Change:**
+  - `package.json` & `package-lock.json`: Bumped `@small-world-machine/engine` from `0.128.0` to `0.129.0` via GitHub release tarball URL.
+  - `app.json`: Updated `engine` compatibility constraint to `>=0.129.0`.
+  - `README.md`: Updated engine release reference to `packages-0.129.0`.
+- **Verification:** `npm run typecheck`, `npm test` (9/9 test files, 28/28 tests green), and `npm run build` passed.
+

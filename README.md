@@ -4,7 +4,7 @@ A retro first-person dungeon crawler (Freedoom `E1M1` WAD + classic ASCII grid, 
 
 ## Engine Dependency
 
-`@small-world-machine/engine` is installed from the engine repo's GitHub release (URL dependency in `package.json`, currently `packages-0.128.0`). Import from the package root only; never from internal paths. If the project needs something the public API does not expose, update the engine, cut a new release, point the URL in `package.json` at it, and run `npm install && npm run typecheck && npm test`.
+`@small-world-machine/engine` is installed from the engine repo's GitHub release (URL dependency in `package.json`, currently `packages-0.129.0`). Import from the package root only; never from internal paths. If the project needs something the public API does not expose, update the engine, cut a new release, point the URL in `package.json` at it, and run `npm install && npm run typecheck && npm test`.
 
 ## Setup
 

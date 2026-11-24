@@ -4,7 +4,7 @@
   "version": "0.3.0",
   "schemaVersion": 1,
   "description": "First-person retro dungeon crawler supporting Freedoom WAD maps and ASCII grid levels.",
-  "engine": ">=0.128.0",
+  "engine": ">=0.129.0",
   "entry": "src/index.html",
   "levels": [],
   "characters": [],
