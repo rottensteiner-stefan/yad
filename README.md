@@ -16,12 +16,22 @@ npm install
 
 ## Commands
 
-| Command | Purpose |
-| :--- | :--- |
-| `npm run dev` | Vite dev server |
-| `npm run build` | Production build into `dist/` |
-| `npm run typecheck` | `tsc --noEmit` over `src/**` and `tests/**` |
-| `npm test` | Vitest (`tests/**/*.test.ts`) |
+Commands can be invoked either via `make` or directly via `npm`:
+
+| Make Target | NPM Equivalent | Purpose |
+| :--- | :--- | :--- |
+| `make dev` / `make start` | `npm run dev` | Start Vite dev server |
+| `make restart` | — | Kill blocked Vite ports and restart dev server |
+| `make kill` | `npm run kill:vite` | Terminate processes on Vite ports (5173–5185) |
+| `make check` | — | Run all gates sequentially (`typecheck`, `test`, `build`) |
+| `make typecheck` | `npm run typecheck` | `tsc --noEmit` over `src/**` and `tests/**` |
+| `make test` | `npm test` | Vitest run (`tests/**/*.test.ts`) |
+| `make test-watch` | `npm run test:watch` | Vitest interactive watch mode |
+| `make build` | `npm run build` | Production bundle into `dist/` |
+| `make preview` | `npm run preview` | Preview production build |
+| `make clean` | — | Remove `dist/` build artifacts |
+| `make fclean` | — | Remove `dist/` and `node_modules/` |
+
 
 ## Layout
 

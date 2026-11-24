@@ -176,3 +176,11 @@
   - `README.md`: Updated engine release reference to `packages-0.129.0`.
 - **Verification:** `npm run typecheck`, `npm test` (9/9 test files, 28/28 tests green), and `npm run build` passed.
 
+## 17. Project Makefile Added (2026-11-24)
+
+- **Trigger:** Provide parity with sibling app *The Whisper* by adding a dedicated `Makefile` for developer workflow (`dev`, `start`, `restart`, `kill`, `check`, `typecheck`, `test`, `build`, `clean`).
+- **Change:**
+  - `Makefile`: Added targets for starting/restarting the dev server (`restart` invokes `kill` before starting Vite), killing blocked ports via `npm run kill:vite`, sequential verification gate (`make check`), test runners, and build/cleanup targets with colorized `help`.
+  - `README.md`: Documented all `make` targets alongside direct `npm` invocations.
+- **Verification:** Verified `make help`, `make kill`, and `make check` (all 3 gates passed).
+
