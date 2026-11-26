@@ -1,7 +1,7 @@
 {
   "name": "yad",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "YAD — Yet Another Dungeon. A first-person grid-crawler. Standalone project; it consumes Small World Machine as a versioned package (pinned release URL).",
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
     "kill:vite": "node .agents/skills/reset-vite/reset-vite.mjs"
   },
   "dependencies": {
-    "@small-world-machine/engine": "https://github.com/rottensteiner-stefan/small-world-machine/releases/download/packages-0.129.2/small-world-machine-engine-0.129.2.tgz"
+    "@small-world-machine/engine": "https://github.com/rottensteiner-stefan/small-world-machine/releases/download/packages-0.129.3/small-world-machine-engine-0.129.3.tgz"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

@@ -1,10 +1,10 @@
 {
   "id": "yad",
   "name": "YAD — Yet Another Dungeon",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "schemaVersion": 1,
   "description": "First-person retro dungeon crawler supporting Freedoom WAD maps and ASCII grid levels.",
-  "engine": ">=0.129.2",
+  "engine": ">=0.129.3",
   "entry": "src/index.html",
   "levels": [],
   "characters": [],

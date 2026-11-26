@@ -191,3 +191,11 @@
   - `package.json`, `package-lock.json`, `app.json`, `README.md`: Upgraded `@small-world-machine/engine` to `packages-0.129.2`, bumped app version to `0.3.1`, and updated `app.json` `engine` floor to `>=0.129.2`.
   - `CHANGELOG.md`: Added `[0.3.1]` release notes covering the `Makefile` workflow and `packages-0.129.2` upgrade.
 - **Verification:** `npm run typecheck`, `npm test`, and `npm run build` passed.
+
+## 19. Engine 0.129.3 Upgrade & Release v0.3.2 (2026-11-27)
+
+- **Trigger:** Sync standalone `yad` release `0.3.2` with engine release `packages-0.129.3`.
+- **Change:**
+  - `package.json`, `package-lock.json`, `app.json`, `README.md`: Upgraded `@small-world-machine/engine` to `packages-0.129.3`, bumped app version to `0.3.2`, and updated `app.json` `engine` floor to `>=0.129.3`.
+  - `CHANGELOG.md`: Added `[0.3.2]` release notes.
+- **Verification:** `npm run typecheck`, `npm test`, and `npm run build` passed.

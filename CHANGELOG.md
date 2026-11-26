@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-11-27
+
+### "Step by step and the thing is done." - Charles Atlas
+
+- **Architecture & Bugfixes:**
+  - Upgraded `@small-world-machine/engine` from `packages-0.129.2` to `packages-0.129.3` and raised `app.json` engine floor to `>=0.129.3`.
+
 ## [0.3.1] - 2026-11-24
 
 ### "Speak clearly, if you speak at all; carve every word before you let it fall." - Oliver Wendell Holmes
