@@ -178,7 +178,7 @@
 
 ## 17. Project Makefile Added (2026-11-24)
 
-- **Trigger:** Provide parity with sibling app *The Whisper* by adding a dedicated `Makefile` for developer workflow (`dev`, `start`, `restart`, `kill`, `check`, `typecheck`, `test`, `build`, `clean`).
+- **Trigger:** Provide parity with a sibling standalone app by adding a dedicated `Makefile` for developer workflow (`dev`, `start`, `restart`, `kill`, `check`, `typecheck`, `test`, `build`, `clean`).
 - **Change:**
   - `Makefile`: Added targets for starting/restarting the dev server (`restart` invokes `kill` before starting Vite), killing blocked ports via `npm run kill:vite`, sequential verification gate (`make check`), test runners, and build/cleanup targets with colorized `help`.
   - `README.md`: Documented all `make` targets alongside direct `npm` invocations.
